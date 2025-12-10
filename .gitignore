@@ -1,15 +1,134 @@
-*.iml
+# ============ GRADLE & BUILD ============
 .gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
 /build
-/captures
-.externalNativeBuild
-.cxx
+/buildOutput
+.gradle/
+*.gradle.bak
+
+# ============ IDE (Android Studio / IntelliJ) ============
+.idea/
+*.iml
+*.iws
+*.ipr
+*.sublime-workspace
+*.sublime-project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# ============ LOCAL CONFIGURATION ============
 local.properties
+local.gradle
+gradle.properties.local
+signing.properties
+
+# ============ NATIVE BUILD ============
+.externalNativeBuild
+.cxx/
+CMakeFiles/
+CMakeCache.txt
+
+# ============ BUILD ARTIFACTS ============
+/app/build/
+/app/release/
+/app/debug/
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+*.jar
+*.war
+*.aar
+*.zip
+*.tar.gz
+*.rar
+
+# ============ KOTLIN & JAVA ============
+*.kt.bak
+*.java.bak
+*.swp
+*.swo
+*~
+.DS_Store
+.directory
+Thumbs.db
+
+# ============ TEST ARTIFACTS ============
+/app/test-results/
+/coverage/
+*.lcov
+*.coverage
+
+# ============ GRADLE WRAPPER ============
+!gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.jar
+
+# ============ LINT & ANALYSIS ============
+lint-results.xml
+lint-results-debug.html
+lint-results-release.html
+/app/.lint/
+
+# ============ OS-SPECIFIC ============
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.AppleDouble
+.LSOverride
+
+# ============ EDITOR & IDE EXTENSIONS ============
+.vscode/
+.settings/
+*.sublime-workspace
+*.sublime-project
+.atom/
+.history/
+
+# ============ LOGS ============
+*.log
+*.log.*
+/app/logs/
+logcat.log
+
+# ============ CRASH REPORTS ============
+crash-reports/
+**/crash-reports/
+
+# ============ ENVIRONMENT & SECRETS ============
+.env
+.env.local
+.env.*.local
+secrets.properties
+keystore.properties
+signing.jks
+*.keystore
+*.p12
+*.pfx
+
+# ============ RUNTIME ============
+*.hprof
+.kotlin_build/
+/tmp/
+/temp/
+*.tmp
+
+# ============ MISC ============
+.npz
+.pytest_cache/
+__pycache__/
+*.egg-info/
+.venv/
+venv/
+env/
+.python-version
+
+# ============ DEVICE FARM & EMULATOR ============
+emulator.log
+**/emulator-*.log
