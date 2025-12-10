@@ -4,7 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.trading.orb.data.model.*
 import com.trading.orb.data.repository.TradingRepository
-import com.trading.orb.ui.screens.HistoryFilter
+import com.trading.orb.ui.screens.tradehistory.HistoryFilter
+import com.trading.orb.ui.state.DashboardUiState
+import com.trading.orb.ui.state.ErrorState
+import com.trading.orb.ui.state.LoadingState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -59,9 +62,49 @@ class TradingViewModel @Inject constructor(
             initialValue = RiskSettings()
         )
 
+    // Dashboard UI State
+    private val _dashboardUiState = MutableStateFlow(DashboardUiState())
+    val dashboardUiState: StateFlow<DashboardUiState> = _dashboardUiState.asStateFlow()
+
     // UI events
     private val _uiEvent = MutableSharedFlow<UiEvent>()
     val uiEvent: SharedFlow<UiEvent> = _uiEvent.asSharedFlow()
+
+    init {
+        loadDashboard()
+    }
+
+    private fun loadDashboard() {
+        viewModelScope.launch {
+            _dashboardUiState.update { it.copy(loading = LoadingState(isLoading = true)) }
+            try {
+                // Simulate data loading - in reality, data comes from repository flows
+                // The dashboard data is continuously streamed from repository.appState
+                _dashboardUiState.update {
+                    it.copy(
+                        loading = LoadingState(isLoading = false),
+                        error = ErrorState()
+                    )
+                }
+            } catch (e: Exception) {
+                _dashboardUiState.update {
+                    it.copy(
+                        loading = LoadingState(isLoading = false),
+                        error = ErrorState(
+                            hasError = true,
+                            errorMessage = e.message ?: "Failed to load dashboard",
+                            isRetryable = true,
+                            throwable = e
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    fun retryDashboard() {
+        loadDashboard()
+    }
 
     // Actions
     fun toggleStrategy() {

@@ -1,4 +1,4 @@
-package com.trading.orb.ui.screens
+package com.trading.orb.ui.screens.liveloggers
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*

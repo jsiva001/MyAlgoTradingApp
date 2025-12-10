@@ -1,4 +1,4 @@
-package com.trading.orb.ui.screens
+package com.trading.orb.ui.screens.tradehistory
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*

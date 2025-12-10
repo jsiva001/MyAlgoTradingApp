@@ -1,4 +1,4 @@
-package com.trading.orb.ui.screens
+package com.trading.orb.ui.screens.risk
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState

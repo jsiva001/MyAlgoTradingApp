@@ -1,7 +1,7 @@
 package com.trading.orb.data.repository
 
 import com.trading.orb.data.model.*
-import com.trading.orb.ui.screens.HistoryFilter
+import com.trading.orb.ui.screens.tradehistory.HistoryFilter
 import kotlinx.coroutines.flow.Flow
 
 interface TradingRepository {

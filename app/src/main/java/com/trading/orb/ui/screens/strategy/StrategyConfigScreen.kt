@@ -1,4 +1,4 @@
-package com.trading.orb.ui.screens
+package com.trading.orb.ui.screens.strategy
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource

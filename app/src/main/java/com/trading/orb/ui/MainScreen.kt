@@ -14,7 +14,15 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.trading.orb.ui.components.*
 import com.trading.orb.ui.navigation.*
-import com.trading.orb.ui.screens.*
+import com.trading.orb.ui.screens.dashboard.DashboardScreen
+import com.trading.orb.ui.screens.dashboard.DashboardUiState
+import com.trading.orb.ui.screens.dashboard.AppState as DashboardAppState
+import com.trading.orb.ui.screens.liveloggers.LiveLogsScreen
+import com.trading.orb.ui.screens.more.MoreScreen
+import com.trading.orb.ui.screens.positions.PositionsScreen
+import com.trading.orb.ui.screens.risk.RiskScreen
+import com.trading.orb.ui.screens.strategy.StrategyConfigScreen
+import com.trading.orb.ui.screens.tradehistory.TradeHistoryScreen
 import com.trading.orb.ui.theme.*
 import com.trading.orb.ui.viewmodel.TradingViewModel
 import com.trading.orb.ui.viewmodel.UiEvent
@@ -181,7 +189,14 @@ private fun NavigationHost(
     ) {
         composable(Screen.Dashboard.route) {
             DashboardScreen(
-                appState = appState,
+                uiState = DashboardUiState(), // Will be updated when connected to viewModel
+                appState = DashboardAppState(
+                    tradingMode = appState.tradingMode,
+                    strategyStatus = appState.strategyStatus,
+                    connectionStatus = appState.connectionStatus,
+                    dailyStats = appState.dailyStats,
+                    orbLevels = appState.orbLevels
+                ),
                 onToggleStrategy = { viewModel.toggleStrategy() },
                 onToggleMode = { viewModel.toggleTradingMode() },
                 onEmergencyStop = { viewModel.emergencyStop() }

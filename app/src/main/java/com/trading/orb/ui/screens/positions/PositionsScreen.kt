@@ -1,4 +1,4 @@
-package com.trading.orb.ui.screens
+package com.trading.orb.ui.screens.positions
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
