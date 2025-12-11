@@ -17,27 +17,35 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.trading.orb.data.model.*
 import com.trading.orb.ui.components.*
+import com.trading.orb.ui.event.DashboardUiEvent
 import com.trading.orb.ui.state.ErrorState
 import com.trading.orb.ui.state.LoadingState
 import com.trading.orb.ui.theme.*
+import com.trading.orb.ui.utils.LaunchEventCollector
 
 @Composable
 fun DashboardScreen(
-    uiState: DashboardUiState = DashboardUiState(),
-    appState: AppState = AppState(),
-    onToggleStrategy: () -> Unit = {},
-    onToggleMode: () -> Unit = {},
-    onEmergencyStop: () -> Unit = {},
-    onRetry: () -> Unit = {},
+    viewModel: DashboardViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
+    val uiState by viewModel.dashboardUiState.collectAsStateWithLifecycle()
+    val appState by viewModel.appState.collectAsStateWithLifecycle()
+    
+    LaunchEventCollector(eventFlow = viewModel.uiEvent) { event ->
+        when (event) {
+            is DashboardUiEvent.ShowError -> {}
+            is DashboardUiEvent.ShowSuccess -> {}
+            else -> {}
+        }
+    }
+    
     DashboardScreenContent(
         uiState = uiState,
         appState = appState,
-        onToggleStrategy = onToggleStrategy,
-        onToggleMode = onToggleMode,
-        onEmergencyStop = onEmergencyStop,
-        onRetry = onRetry,
+        onToggleStrategy = { viewModel.toggleStrategy() },
+        onToggleMode = { viewModel.toggleTradingMode() },
+        onEmergencyStop = { viewModel.emergencyStop() },
+        onRetry = { viewModel.retryDashboard() },
         modifier = modifier
     )
 }
@@ -424,7 +432,7 @@ private fun DashboardErrorScreen(
 @Preview(name = "Dashboard - Live Mode - Success", showBackground = true, backgroundColor = 0xFF1A1A1A)
 @Composable
 fun DashboardScreenLiveSuccessPreview() {
-    OrbTradingTheme(tradingMode = com.trading.orb.data.model.TradingMode.LIVE) {
+    OrbTradingTheme(tradingMode = TradingMode.LIVE) {
         DashboardScreenContent(
             uiState = DashboardPreviewProvider.sampleDashboardUiState(),
             appState = DashboardPreviewProvider.sampleAppState(tradingMode = TradingMode.LIVE),
@@ -439,7 +447,7 @@ fun DashboardScreenLiveSuccessPreview() {
 @Preview(name = "Dashboard - Loading State (Live)", showBackground = true, backgroundColor = 0xFF1A1A1A)
 @Composable
 fun DashboardScreenLoadingPreview() {
-    OrbTradingTheme(tradingMode = com.trading.orb.data.model.TradingMode.LIVE) {
+    OrbTradingTheme(tradingMode = TradingMode.LIVE) {
         DashboardScreenContent(
             uiState = DashboardPreviewProvider.sampleDashboardUiState(isLoading = true),
             appState = DashboardPreviewProvider.sampleAppState(tradingMode = TradingMode.LIVE),
@@ -454,7 +462,7 @@ fun DashboardScreenLoadingPreview() {
 @Preview(name = "Dashboard - Error State Retryable (Live)", showBackground = true, backgroundColor = 0xFF1A1A1A)
 @Composable
 fun DashboardScreenErrorRetryablePreview() {
-    OrbTradingTheme(tradingMode = com.trading.orb.data.model.TradingMode.LIVE) {
+    OrbTradingTheme(tradingMode = TradingMode.LIVE) {
         DashboardScreenContent(
             uiState = DashboardPreviewProvider.sampleDashboardUiState(
                 hasError = true,

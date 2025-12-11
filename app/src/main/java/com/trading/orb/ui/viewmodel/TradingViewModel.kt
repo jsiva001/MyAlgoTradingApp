@@ -4,8 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.trading.orb.data.model.*
 import com.trading.orb.data.repository.TradingRepository
-import com.trading.orb.ui.screens.tradehistory.HistoryFilter
-import com.trading.orb.ui.state.DashboardUiState
+import com.trading.orb.ui.screens.dashboard.DashboardUiState
+import com.trading.orb.ui.state.HistoryFilter
 import com.trading.orb.ui.state.ErrorState
 import com.trading.orb.ui.state.LoadingState
 import dagger.hilt.android.lifecycle.HiltViewModel

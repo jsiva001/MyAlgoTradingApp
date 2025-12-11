@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.trading.orb.data.model.*
 import com.trading.orb.data.repository.TradingRepository
+import com.trading.orb.ui.event.DashboardUiEvent
 import com.trading.orb.ui.state.ErrorState
 import com.trading.orb.ui.state.LoadingState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -164,16 +165,6 @@ class DashboardViewModel @Inject constructor(
             }
         }
     }
-}
-
-/**
- * UI Events for Dashboard
- */
-sealed class DashboardUiEvent {
-    data class ShowError(val message: String) : DashboardUiEvent()
-    data class ShowSuccess(val message: String) : DashboardUiEvent()
-    data object NavigateToStrategy : DashboardUiEvent()
-    data object NavigateToPositions : DashboardUiEvent()
 }
 
 /**

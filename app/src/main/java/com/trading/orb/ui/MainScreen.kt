@@ -188,74 +188,31 @@ private fun NavigationHost(
         modifier = modifier
     ) {
         composable(Screen.Dashboard.route) {
-            DashboardScreen(
-                uiState = DashboardUiState(), // Will be updated when connected to viewModel
-                appState = DashboardAppState(
-                    tradingMode = appState.tradingMode,
-                    strategyStatus = appState.strategyStatus,
-                    connectionStatus = appState.connectionStatus,
-                    dailyStats = appState.dailyStats,
-                    orbLevels = appState.orbLevels
-                ),
-                onToggleStrategy = { viewModel.toggleStrategy() },
-                onToggleMode = { viewModel.toggleTradingMode() },
-                onEmergencyStop = { viewModel.emergencyStop() }
-            )
+            DashboardScreen()
         }
 
         composable(Screen.Positions.route) {
-            PositionsScreen(
-                positions = positions,
-                onClosePosition = { positionId ->
-                    viewModel.closePosition(positionId)
-                }
-            )
+            PositionsScreen()
         }
 
         composable(Screen.History.route) {
-            TradeHistoryScreen(trades = trades)
+            TradeHistoryScreen()
         }
 
         composable(Screen.Strategy.route) {
-            StrategyConfigScreen(
-                config = strategyConfig,
-                onConfigChange = { config ->
-                    viewModel.updateStrategyConfig(config)
-                },
-                onSave = {
-                    // Save is handled in onConfigChange
-                }
-            )
+            StrategyConfigScreen()
         }
 
         composable(Screen.More.route) {
-            MoreScreen(
-                onNavigateToRisk = {
-                    navController.navigate(Screen.Risk.route)
-                },
-                onNavigateToLogs = {
-                    navController.navigate(Screen.Logs.route)
-                }
-            )
+            MoreScreen(navController = navController)
         }
 
         composable(Screen.Risk.route) {
-            RiskScreen(
-                riskSettings = appState.riskSettings,
-                onRiskSettingsChange = { settings ->
-                    viewModel.updateRiskSettings(settings)
-                },
-                onCloseAllPositions = {
-                    viewModel.closeAllPositions()
-                },
-                onPauseTrading = {
-                    viewModel.pauseTrading()
-                }
-            )
+            RiskScreen()
         }
 
         composable(Screen.Logs.route) {
-            LiveLogsScreen(tradingMode = appState.tradingMode)
+            LiveLogsScreen()
         }
     }
 }

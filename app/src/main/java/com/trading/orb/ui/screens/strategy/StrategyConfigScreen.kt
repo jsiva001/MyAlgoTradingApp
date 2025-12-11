@@ -10,23 +10,48 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.trading.orb.data.model.*
 import com.trading.orb.ui.components.*
+import com.trading.orb.ui.event.StrategyConfigUiEvent
 import com.trading.orb.ui.theme.*
+import com.trading.orb.ui.utils.LaunchEventCollector
 import java.time.LocalTime
 
 @Composable
 fun StrategyConfigScreen(
-    config: StrategyConfig,
-    onConfigChange: (StrategyConfig) -> Unit,
-    onSave: () -> Unit,
+    viewModel: StrategyConfigViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
-    var editedConfig by remember { mutableStateOf(config) }
+    val uiState by viewModel.strategyConfigUiState.collectAsStateWithLifecycle()
+    
+    LaunchEventCollector(eventFlow = viewModel.uiEvent) { event ->
+        when (event) {
+            is StrategyConfigUiEvent.ShowError -> {}
+            is StrategyConfigUiEvent.ShowSuccess -> {}
+            is StrategyConfigUiEvent.ConfigurationSaved -> {}
+        }
+    }
+    
+    StrategyConfigScreenContent(
+        uiState = uiState,
+        onSaveConfig = { viewModel.saveConfiguration() },
+        modifier = modifier
+    )
+}
+
+@Composable
+private fun StrategyConfigScreenContent(
+    uiState: StrategyConfigUiState = StrategyConfigUiState(),
+    onSaveConfig: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var editedConfig by remember { mutableStateOf(StrategyConfig(instrument = Instrument(symbol = "", exchange = "", lotSize = 0, tickSize = 0.0))) }
 
     Column(
         modifier = modifier
@@ -45,8 +70,7 @@ fun StrategyConfigScreen(
         PositionSizingSection(config = editedConfig) { editedConfig = it }
 
         SaveButton {
-            onConfigChange(editedConfig)
-            onSave()
+            onSaveConfig()
         }
     }
 }
@@ -355,20 +379,11 @@ private fun <T> updateIfValid(
 @Preview
 @Composable
 fun StrategyConfigScreenPreview() {
-    val defaultConfig = StrategyConfig(
-        instrument = Instrument(
-            symbol = "NIFTY",
-            exchange = "NSE",
-            lotSize = 50,
-            tickSize = 0.05,
-            displayName = "NIFTY 50"
+    OrbTradingTheme {
+        StrategyConfigScreenContent(
+            uiState = StrategyConfigPreviewProvider.sampleStrategyConfigUiState(),
+            onSaveConfig = { }
         )
-    )
-
-    StrategyConfigScreen(
-        config = defaultConfig,
-        onConfigChange = { },
-        onSave = { }
-    )
+    }
 }
 

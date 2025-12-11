@@ -9,14 +9,20 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.trading.orb.data.model.*
+import com.trading.orb.data.model.OrderSide
 import com.trading.orb.ui.components.*
+import com.trading.orb.ui.event.TradeHistoryUiEvent
+import com.trading.orb.ui.state.TradeHistoryUiModel
 import com.trading.orb.ui.theme.*
+import com.trading.orb.ui.utils.LaunchDataLoader
+import com.trading.orb.ui.utils.LaunchEventCollector
 import java.time.LocalDateTime
 
 enum class HistoryFilter {
@@ -25,7 +31,33 @@ enum class HistoryFilter {
 
 @Composable
 fun TradeHistoryScreen(
-    trades: List<Trade>,
+    viewModel: TradeHistoryViewModel = hiltViewModel(),
+    modifier: Modifier = Modifier
+) {
+    val uiState by viewModel.tradeHistoryUiState.collectAsStateWithLifecycle()
+    
+    LaunchDataLoader(viewModel = viewModel) {
+        viewModel.loadTradeHistory()
+    }
+    
+    LaunchEventCollector(eventFlow = viewModel.uiEvent) { event ->
+        when (event) {
+            is TradeHistoryUiEvent.ShowError -> {}
+            is TradeHistoryUiEvent.ShowSuccess -> {}
+            is TradeHistoryUiEvent.TradeSelected -> {}
+            is TradeHistoryUiEvent.HistoryExported -> {}
+        }
+    }
+    
+    TradeHistoryScreenContent(
+        uiState = uiState,
+        modifier = modifier
+    )
+}
+
+@Composable
+private fun TradeHistoryScreenContent(
+    uiState: TradeHistoryUiState = TradeHistoryUiState(),
     modifier: Modifier = Modifier
 ) {
     var selectedFilter by remember { mutableStateOf(HistoryFilter.TODAY) }
@@ -40,10 +72,10 @@ fun TradeHistoryScreen(
         )
 
         // Statistics summary
-        TradeStatistics(trades = trades)
+        TradeStatistics(trades = uiState.trades)
 
         // Trade list
-        if (trades.isEmpty()) {
+        if (uiState.trades.isEmpty()) {
             EmptyTradesView()
         } else {
             LazyColumn(
@@ -51,7 +83,7 @@ fun TradeHistoryScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(trades) { trade ->
+                items(uiState.trades) { trade ->
                     TradeCard(trade = trade)
                 }
             }
@@ -102,20 +134,20 @@ private fun FilterTabButton(
 }
 
 @Composable
-private fun TradeStatistics(trades: List<Trade>) {
-    val winningTrades = trades.filter { it.isProfit }
-    val losingTrades = trades.filter { !it.isProfit }
+private fun TradeStatistics(trades: List<TradeHistoryUiModel>) {
+    val winningTrades = trades.filter { it.profitLoss >= 0 }
+    val losingTrades = trades.filter { it.profitLoss < 0 }
 
     val winRate = if (trades.isNotEmpty()) {
         (winningTrades.size.toDouble() / trades.size) * 100
     } else 0.0
 
     val avgWin = if (winningTrades.isNotEmpty()) {
-        winningTrades.map { it.netPnl }.average()
+        winningTrades.map { it.profitLoss }.average()
     } else 0.0
 
     val avgLoss = if (losingTrades.isNotEmpty()) {
-        losingTrades.map { it.netPnl }.average()
+        losingTrades.map { it.profitLoss }.average()
     } else 0.0
 
     OrbCard(
@@ -185,8 +217,8 @@ private fun StatColumn(
 }
 
 @Composable
-private fun TradeCard(trade: Trade) {
-    val borderColor = if (trade.isProfit) Success else Error
+private fun TradeCard(trade: TradeHistoryUiModel) {
+    val borderColor = if (trade.profitLoss >= 0) Success else Error
 
     OrbCard(
         modifier = Modifier.border(
@@ -203,18 +235,18 @@ private fun TradeCard(trade: Trade) {
         ) {
             Column {
                 Text(
-                    text = trade.instrument.displayName,
+                    text = trade.symbol,
                     style = MaterialTheme.typography.headlineLarge,
                     color = TextPrimary
                 )
                 Text(
-                    text = "${TimeFormatter.formatDateTime(trade.entryTime)} - ${TimeFormatter.formatTime(trade.exitTime)}",
+                    text = "${trade.entryTime} - ${trade.exitTime}",
                     style = MaterialTheme.typography.labelSmall,
                     color = TextSecondary
                 )
             }
 
-            OrderSideBadge(side = trade.side)
+            OrderSideBadge(side = if (trade.tradeType == "BUY") OrderSide.BUY else OrderSide.SELL)
         }
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -245,8 +277,8 @@ private fun TradeCard(trade: Trade) {
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 PnLDisplay(
-                    pnl = trade.netPnl,
-                    percentage = trade.pnlPercentage,
+                    pnl = trade.profitLoss,
+                    percentage = trade.profitLossPercent,
                     fontSize = 16
                 )
             }
@@ -255,7 +287,11 @@ private fun TradeCard(trade: Trade) {
         Spacer(modifier = Modifier.height(12.dp))
 
         // Exit reason
-        ExitReasonBadge(reason = trade.exitReason)
+        Text(
+            text = "Reason: ${trade.reason}",
+            style = MaterialTheme.typography.labelSmall,
+            color = TextSecondary
+        )
     }
 }
 
@@ -314,48 +350,7 @@ private fun EmptyTradesView() {
 @Preview
 @Composable
 fun TradeHistoryScreenPreview() {
-    val sampleTrades = listOf(
-        Trade(
-            id = "1",
-            instrument = Instrument(
-                symbol = "NIFTY24DEC22000CE",
-                exchange = "NSE",
-                lotSize = 50,
-                tickSize = 0.05,
-                displayName = "NIFTY 22000 CE"
-            ),
-            side = OrderSide.BUY,
-            quantity = 50,
-            entryPrice = 183.50,
-            exitPrice = 198.50,
-            entryTime = LocalDateTime.now().minusHours(2),
-            exitTime = LocalDateTime.now().minusMinutes(90),
-            exitReason = ExitReason.TARGET_HIT,
-            pnl = 1500.0,
-            charges = 50.0
-        ),
-        Trade(
-            id = "2",
-            instrument = Instrument(
-                symbol = "BANKNIFTY27DEC48000PE",
-                exchange = "NSE",
-                lotSize = 25,
-                tickSize = 0.05,
-                displayName = "BANKNIFTY 48000 PE"
-            ),
-            side = OrderSide.SELL,
-            quantity = 25,
-            entryPrice = 295.00,
-            exitPrice = 287.00,
-            entryTime = LocalDateTime.now().minusDays(1),
-            exitTime = LocalDateTime.now().minusDays(1).plusHours(1),
-            exitReason = ExitReason.SL_HIT,
-            pnl = -400.0,
-            charges = 30.0
-        )
-    )
-
     OrbTradingTheme {
-        TradeHistoryScreen(trades = sampleTrades)
+        TradeHistoryScreenContent(uiState = TradeHistoryPreviewProvider.sampleTradeHistoryUiState())
     }
 }

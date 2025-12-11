@@ -8,6 +8,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
@@ -16,17 +18,45 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.trading.orb.data.model.RiskSettings
 import com.trading.orb.ui.components.*
+import com.trading.orb.ui.event.RiskUiEvent
 import com.trading.orb.ui.theme.*
+import com.trading.orb.ui.utils.LaunchEventCollector
 
 @Composable
 fun RiskScreen(
-    riskSettings: RiskSettings,
-    onRiskSettingsChange: (RiskSettings) -> Unit,
+    viewModel: RiskViewModel = hiltViewModel(),
+    modifier: Modifier = Modifier
+) {
+    val uiState by viewModel.riskUiState.collectAsStateWithLifecycle()
+    
+    LaunchEventCollector(eventFlow = viewModel.uiEvent) { event ->
+        when (event) {
+            is RiskUiEvent.ShowError -> {}
+            is RiskUiEvent.ShowSuccess -> {}
+            is RiskUiEvent.AlertDismissed -> {}
+            is RiskUiEvent.AllAlertsAcknowledged -> {}
+            is RiskUiEvent.DataRefreshed -> {}
+        }
+    }
+    
+    RiskScreenContent(
+        uiState = uiState,
+        onSaveRiskLimits = { viewModel.saveRiskLimits() },
+        onCloseAllPositions = { viewModel.closeAlert("all") },
+        onPauseTrading = { },
+        modifier = modifier
+    )
+}
+
+@Composable
+private fun RiskScreenContent(
+    uiState: RiskUiState = RiskUiState(),
+    onSaveRiskLimits: () -> Unit,
     onCloseAllPositions: () -> Unit,
     onPauseTrading: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var editedSettings by remember { mutableStateOf(riskSettings) }
+    var editedSettings by remember { mutableStateOf(RiskSettings()) }
     var showCloseAllDialog by remember { mutableStateOf(false) }
 
     Column(
@@ -62,7 +92,7 @@ fun RiskScreen(
 
         // Save Button
         Button(
-            onClick = { onRiskSettingsChange(editedSettings) },
+            onClick = onSaveRiskLimits,
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary
@@ -389,18 +419,9 @@ private fun EmergencyControlsSection(
 @Composable
 fun RiskScreenPreview() {
     OrbTradingTheme(tradingMode = com.trading.orb.data.model.TradingMode.PAPER) {
-        RiskScreen(
-            riskSettings = RiskSettings(
-                maxDailyLoss = 100.0,
-                currentDailyLoss = 50.0,
-                maxDailyTrades = 10,
-                currentDailyTrades = 5,
-                maxPositions = 4,
-                maxPerInstrument = 2,
-                circuitBreakerLossPercent = 80.0,
-                coolDownMinutes = 15
-            ),
-            onRiskSettingsChange = {},
+        RiskScreenContent(
+            uiState = RiskPreviewProvider.sampleRiskUiState(),
+            onSaveRiskLimits = {},
             onCloseAllPositions = {},
             onPauseTrading = {}
         )
@@ -411,18 +432,9 @@ fun RiskScreenPreview() {
 @Composable
 fun RiskScreenLivePreview() {
     OrbTradingTheme(tradingMode = com.trading.orb.data.model.TradingMode.LIVE) {
-        RiskScreen(
-            riskSettings = RiskSettings(
-                maxDailyLoss = 100.0,
-                currentDailyLoss = 50.0,
-                maxDailyTrades = 10,
-                currentDailyTrades = 5,
-                maxPositions = 4,
-                maxPerInstrument = 2,
-                circuitBreakerLossPercent = 80.0,
-                coolDownMinutes = 15
-            ),
-            onRiskSettingsChange = {},
+        RiskScreenContent(
+            uiState = RiskPreviewProvider.sampleRiskUiState(),
+            onSaveRiskLimits = {},
             onCloseAllPositions = {},
             onPauseTrading = {}
         )

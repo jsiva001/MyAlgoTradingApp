@@ -10,65 +10,50 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.trading.orb.data.model.LogEntry
-import com.trading.orb.data.model.LogLevel
-import com.trading.orb.data.model.TradingMode
 import com.trading.orb.ui.components.TimeFormatter
+import com.trading.orb.ui.event.LiveLogsUiEvent
+import com.trading.orb.ui.state.LogEntryUiModel
 import com.trading.orb.ui.theme.*
+import com.trading.orb.ui.utils.LaunchEventCollector
 import java.time.LocalDateTime
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LiveLogsScreen(
-    modifier: Modifier = Modifier,
-    tradingMode: TradingMode = TradingMode.PAPER // Add this line
+    viewModel: LiveLogsViewModel = hiltViewModel(),
+    modifier: Modifier = Modifier
 ) {
-    // Sample logs - replace with actual log stream from ViewModel
-    val sampleLogs = remember {
-        listOf(
-            LogEntry(
-                timestamp = LocalDateTime.now(),
-                level = LogLevel.INFO,
-                message = "Strategy started in PAPER mode"
-            ),
-            LogEntry(
-                timestamp = LocalDateTime.now().minusMinutes(1),
-                level = LogLevel.SUCCESS,
-                message = "First 15-min candle captured: H0=188.0, L0=183.0"
-            ),
-            LogEntry(
-                timestamp = LocalDateTime.now().minusMinutes(2),
-                level = LogLevel.WARNING,
-                message = "Breakout detected at ₹188.2"
-            ),
-            LogEntry(
-                timestamp = LocalDateTime.now().minusMinutes(3),
-                level = LogLevel.SUCCESS,
-                message = "Order placed: BUY NIFTY 22000 CE @ ₹183.50"
-            ),
-            LogEntry(
-                timestamp = LocalDateTime.now().minusMinutes(4),
-                level = LogLevel.SUCCESS,
-                message = "Order filled: 50 qty @ ₹183.50"
-            ),
-            LogEntry(
-                timestamp = LocalDateTime.now().minusMinutes(5),
-                level = LogLevel.INFO,
-                message = "Stop loss set at ₹175.50"
-            ),
-            LogEntry(
-                timestamp = LocalDateTime.now().minusMinutes(6),
-                level = LogLevel.INFO,
-                message = "Target set at ₹198.50"
-            )
-        )
+    val uiState by viewModel.liveLogsUiState.collectAsStateWithLifecycle()
+    
+    LaunchEventCollector(eventFlow = viewModel.uiEvent) { event ->
+        when (event) {
+            is LiveLogsUiEvent.ShowError -> {}
+            is LiveLogsUiEvent.ShowSuccess -> {}
+            is LiveLogsUiEvent.LogsCleared -> {}
+            is LiveLogsUiEvent.LogsExported -> {}
+            is LiveLogsUiEvent.LogSelected -> {}
+        }
     }
+    
+    LiveLogsScreenContent(
+        uiState = uiState,
+        modifier = modifier
+    )
+}
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LiveLogsScreenContent(
+    uiState: LiveLogsUiState = LiveLogsUiState(),
+    modifier: Modifier = Modifier
+) {
     val listState = rememberLazyListState()
     var autoScroll by remember { mutableStateOf(true) }
 
@@ -136,7 +121,7 @@ fun LiveLogsScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            items(sampleLogs) { log ->
+            items(uiState.logs) { log ->
                 LogEntryItem(log = log)
             }
         }
@@ -144,12 +129,13 @@ fun LiveLogsScreen(
 }
 
 @Composable
-private fun LogEntryItem(log: LogEntry) {
-    val (icon, color) = when (log.level) {
-        LogLevel.INFO -> Icons.Default.Info to MaterialTheme.colorScheme.primary
-        LogLevel.SUCCESS -> Icons.Default.CheckCircle to Success
-        LogLevel.WARNING -> Icons.Default.Warning to Warning
-        LogLevel.ERROR -> Icons.Default.Error to Error
+private fun LogEntryItem(log: LogEntryUiModel) {
+    val (icon, color) = when (log.level.uppercase()) {
+        "INFO" -> Icons.Default.Info to MaterialTheme.colorScheme.primary
+        "SUCCESS" -> Icons.Default.CheckCircle to Success
+        "WARNING" -> Icons.Default.Warning to Warning
+        "ERROR" -> Icons.Default.Error to Error
+        else -> Icons.Default.Info to MaterialTheme.colorScheme.primary
     }
 
     Row(
@@ -175,7 +161,7 @@ private fun LogEntryItem(log: LogEntry) {
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = TimeFormatter.formatTime(log.timestamp),
+                text = log.timestamp,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -187,7 +173,7 @@ private fun LogEntryItem(log: LogEntry) {
 @Composable
 fun LiveLogsScreenPreview() {
     OrbTradingTheme {
-        LiveLogsScreen()
+        LiveLogsScreenContent(uiState = LiveLogsPreviewProvider.sampleLiveLogsUiState())
     }
 }
 
@@ -195,6 +181,6 @@ fun LiveLogsScreenPreview() {
 @Composable
 fun LiveLogsScreenLivePreview() {
     OrbTradingTheme {
-        LiveLogsScreen(tradingMode = TradingMode.LIVE) // Add this line
+        LiveLogsScreenContent(uiState = LiveLogsPreviewProvider.sampleLiveLogsUiState())
     }
 }

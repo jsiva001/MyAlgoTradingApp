@@ -10,6 +10,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -17,12 +19,42 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.trading.orb.data.model.*
 import com.trading.orb.ui.components.*
+import com.trading.orb.ui.event.PositionsUiEvent
+import com.trading.orb.ui.state.PositionUiModel
 import com.trading.orb.ui.theme.*
+import com.trading.orb.ui.utils.LaunchDataLoader
+import com.trading.orb.ui.utils.LaunchEventCollector
 import java.time.LocalDateTime
 
 @Composable
 fun PositionsScreen(
-    positions: List<Position>,
+    viewModel: PositionsViewModel = hiltViewModel(),
+    modifier: Modifier = Modifier
+) {
+    val uiState by viewModel.positionsUiState.collectAsStateWithLifecycle()
+    
+    LaunchDataLoader(viewModel = viewModel) {
+        viewModel.loadPositions()
+    }
+    
+    LaunchEventCollector(eventFlow = viewModel.uiEvent) { event ->
+        when (event) {
+            is PositionsUiEvent.ShowError -> {}
+            is PositionsUiEvent.ShowSuccess -> {}
+            is PositionsUiEvent.NavigateToPositionDetails -> {}
+        }
+    }
+    
+    PositionsScreenContent(
+        uiState = uiState,
+        onClosePosition = { positionId -> viewModel.closePosition(positionId) },
+        modifier = modifier
+    )
+}
+
+@Composable
+private fun PositionsScreenContent(
+    uiState: PositionsUiState,
     onClosePosition: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -30,10 +62,10 @@ fun PositionsScreen(
         modifier = modifier.fillMaxSize()
     ) {
         // Summary Header
-        PositionsSummaryHeader(positions = positions)
+        PositionsSummaryHeader(uiState = uiState)
 
         // Positions List
-        if (positions.isEmpty()) {
+        if (uiState.positions.isEmpty()) {
             EmptyPositionsView()
         } else {
             LazyColumn(
@@ -41,10 +73,10 @@ fun PositionsScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(positions) { position ->
+                items(uiState.positions) { positionUiModel ->
                     PositionCard(
-                        position = position,
-                        onClose = { onClosePosition(position.id) }
+                        positionUiModel = positionUiModel,
+                        onClose = { onClosePosition(positionUiModel.positionId) }
                     )
                 }
             }
@@ -53,8 +85,8 @@ fun PositionsScreen(
 }
 
 @Composable
-private fun PositionsSummaryHeader(positions: List<Position>) {
-    val totalPnL = positions.sumOf { it.pnl }
+private fun PositionsSummaryHeader(uiState: PositionsUiState) {
+    val totalPnL = uiState.totalProfit + uiState.totalLoss
 
     OrbCard(
         modifier = Modifier.padding(16.dp)
@@ -79,12 +111,12 @@ private fun PositionsSummaryHeader(positions: List<Position>) {
 
 @Composable
 private fun PositionCard(
-    position: Position,
+    positionUiModel: PositionUiModel,
     onClose: () -> Unit
 ) {
     var showCloseDialog by remember { mutableStateOf(false) }
 
-    val borderColor = if (position.isProfit) Success else Error
+    val borderColor = if (positionUiModel.profitLoss >= 0) Success else Error
 
     OrbCard(
         modifier = Modifier.border(
@@ -101,18 +133,18 @@ private fun PositionCard(
         ) {
             Column {
                 Text(
-                    text = position.instrument.displayName,
+                    text = positionUiModel.symbol,
                     style = MaterialTheme.typography.titleMedium,
                     color = TextPrimary
                 )
                 Text(
-                    text = "${position.instrument.exchange} • Qty: ${position.quantity}",
+                    text = "Qty: ${positionUiModel.quantity}",
                     style = MaterialTheme.typography.labelSmall,
                     color = TextSecondary
                 )
             }
 
-            OrderSideBadge(side = position.side)
+            OrderSideBadge(side = if (positionUiModel.type == "LONG") OrderSide.BUY else OrderSide.SELL)
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -124,13 +156,13 @@ private fun PositionCard(
         ) {
             PriceInfoColumn(
                 label = "Entry",
-                value = "₹${String.format("%.2f", position.entryPrice)}",
+                value = "₹${String.format("%.2f", positionUiModel.entryPrice)}",
                 modifier = Modifier.weight(1f)
             )
             PriceInfoColumn(
                 label = "Current",
-                value = "₹${String.format("%.2f", position.currentPrice)}",
-                valueColor = if (position.isProfit) Success else Error,
+                value = "₹${String.format("%.2f", positionUiModel.currentPrice)}",
+                valueColor = if (positionUiModel.profitLoss >= 0) Success else Error,
                 modifier = Modifier.weight(1f)
             )
             Column(
@@ -144,8 +176,8 @@ private fun PositionCard(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 PnLDisplay(
-                    pnl = position.pnl,
-                    percentage = position.pnlPercentage,
+                    pnl = positionUiModel.profitLoss,
+                    percentage = positionUiModel.profitLossPercent,
                     fontSize = 16
                 )
             }
@@ -160,13 +192,13 @@ private fun PositionCard(
         ) {
             LevelBox(
                 label = "SL",
-                value = "₹${String.format("%.2f", position.stopLoss)}",
+                value = "₹${String.format("%.2f", positionUiModel.stopLoss ?: 0.0)}",
                 color = Error,
                 modifier = Modifier.weight(1f)
             )
             LevelBox(
                 label = "Target",
-                value = "₹${String.format("%.2f", position.target)}",
+                value = "₹${String.format("%.2f", positionUiModel.takeProfit ?: 0.0)}",
                 color = Success,
                 modifier = Modifier.weight(1f)
             )
@@ -176,7 +208,7 @@ private fun PositionCard(
 
         // Entry time
         Text(
-            text = "Entry: ${TimeFormatter.formatTime(position.entryTime)}",
+            text = "Entry: ${positionUiModel.openTime}",
             style = MaterialTheme.typography.labelSmall,
             color = TextSecondary
         )
@@ -204,7 +236,7 @@ private fun PositionCard(
             onDismissRequest = { showCloseDialog = false },
             title = { Text("Close Position?") },
             text = {
-                Text("Are you sure you want to close this position for ${position.instrument.displayName}?")
+                Text("Are you sure you want to close this position for ${positionUiModel.symbol}?")
             },
             confirmButton = {
                 TextButton(
@@ -310,46 +342,42 @@ private fun EmptyPositionsView() {
 @Preview
 @Composable
 fun PositionsScreenPreview() {
-    val samplePositions = listOf(
-        Position(
-            id = "1",
-            instrument = Instrument(
-                symbol = "NIFTY24DEC22000CE",
-                exchange = "NSE",
-                lotSize = 50,
-                tickSize = 0.05,
-                displayName = "NIFTY 22000 CE"
-            ),
-            side = OrderSide.BUY,
-            quantity = 50,
-            entryPrice = 183.50,
-            currentPrice = 185.50,
-            stopLoss = 175.50,
-            target = 198.50,
-            entryTime = LocalDateTime.now().minusMinutes(30)
-        ),
-        Position(
-            id = "2",
-            instrument = Instrument(
-                symbol = "BANKNIFTY27DEC48000PE",
-                exchange = "NSE",
-                lotSize = 25,
-                tickSize = 0.05,
-                displayName = "BANKNIFTY 48000 PE"
-            ),
-            side = OrderSide.BUY,
-            quantity = 25,
-            entryPrice = 295.00,
-            currentPrice = 314.00,
-            stopLoss = 287.00,
-            target = 310.00,
-            entryTime = LocalDateTime.now().minusMinutes(45)
-        )
-    )
-
     OrbTradingTheme {
-        PositionsScreen(
-            positions = samplePositions,
+        PositionsScreenContent(
+            uiState = PositionsPreviewProvider.samplePositionsUiState(),
+            onClosePosition = {}
+        )
+    }
+}
+
+@Preview
+@Composable
+fun PositionsScreenEmptyPreview() {
+    OrbTradingTheme {
+        PositionsScreenContent(
+            uiState = PositionsPreviewProvider.samplePositionsUiStateEmpty(),
+            onClosePosition = {}
+        )
+    }
+}
+
+@Preview
+@Composable
+fun PositionsScreenLoadingPreview() {
+    OrbTradingTheme {
+        PositionsScreenContent(
+            uiState = PositionsPreviewProvider.samplePositionsUiStateLoading(),
+            onClosePosition = {}
+        )
+    }
+}
+
+@Preview
+@Composable
+fun PositionsScreenErrorPreview() {
+    OrbTradingTheme {
+        PositionsScreenContent(
+            uiState = PositionsPreviewProvider.samplePositionsUiStateError(),
             onClosePosition = {}
         )
     }

@@ -7,22 +7,50 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.trading.orb.ui.components.*
+import com.trading.orb.ui.event.MoreUiEvent
 import com.trading.orb.ui.theme.*
 import androidx.compose.ui.tooling.preview.Preview
+import com.trading.orb.ui.navigation.Screen
+import com.trading.orb.ui.utils.LaunchEventCollector
 
 @Composable
 fun MoreScreen(
-    onNavigateToRisk: () -> Unit,
-    onNavigateToLogs: () -> Unit,
-    modifier: Modifier = Modifier,
-    brokerName: String = "Zerodha",
-    isConnected: Boolean = true,
-    onDisconnect: () -> Unit = {}
+    navController: NavController? = null,
+    viewModel: MoreViewModel = hiltViewModel(),
+    modifier: Modifier = Modifier
+) {
+    val uiState by viewModel.moreUiState.collectAsStateWithLifecycle()
+    
+    LaunchEventCollector(eventFlow = viewModel.uiEvent) { event ->
+        when (event) {
+            is MoreUiEvent.ShowError -> {}
+            is MoreUiEvent.ShowSuccess -> {}
+            is MoreUiEvent.OpenFeedback -> {}
+            is MoreUiEvent.OpenUrl -> {}
+            is MoreUiEvent.ShareApp -> {}
+        }
+    }
+    
+    MoreScreenContent(
+        uiState = uiState,
+        navController = navController,
+        modifier = modifier
+    )
+}
+
+@Composable
+private fun MoreScreenContent(
+    uiState: MoreUiState = MoreUiState(),
+    navController: NavController? = null,
+    modifier: Modifier = Modifier
 ) {
     Column(
         modifier = modifier
@@ -43,7 +71,7 @@ fun MoreScreen(
             title = "Risk & Safety",
             subtitle = "Limits & Circuit Breakers",
             iconTint = Warning,
-            onClick = onNavigateToRisk
+            onClick = { navController?.navigate(Screen.Risk.route) }
         )
 
         MenuCard(
@@ -51,7 +79,7 @@ fun MoreScreen(
             title = "Live Logs",
             subtitle = "Real-time monitoring",
             iconTint = MaterialTheme.colorScheme.primary,
-            onClick = onNavigateToLogs
+            onClick = { navController?.navigate(Screen.Logs.route) }
         )
 
         MenuCard(
@@ -105,9 +133,9 @@ fun MoreScreen(
         )
 
         BrokerCard(
-            brokerName = brokerName,
-            isConnected = isConnected,
-            onDisconnect = onDisconnect
+            brokerName = uiState.brokerName,
+            isConnected = uiState.isConnected,
+            onDisconnect = { }
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -234,10 +262,7 @@ private fun BrokerCard(
 @Composable
 fun MoreScreenPreview() {
     OrbTradingTheme(tradingMode = com.trading.orb.data.model.TradingMode.PAPER) {
-        MoreScreen(
-            onNavigateToRisk = {},
-            onNavigateToLogs = {}
-        )
+        MoreScreenContent(uiState = MorePreviewProvider.sampleMoreUiState())
     }
 }
 
@@ -245,9 +270,6 @@ fun MoreScreenPreview() {
 @Composable
 fun MoreScreenLivePreview() {
     OrbTradingTheme(tradingMode = com.trading.orb.data.model.TradingMode.LIVE) {
-        MoreScreen(
-            onNavigateToRisk = {},
-            onNavigateToLogs = {}
-        )
+        MoreScreenContent(uiState = MorePreviewProvider.sampleMoreUiState())
     }
 }
