@@ -2,6 +2,9 @@ package com.trading.orb.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.trading.orb.data.engine.OrbStrategyEngine
+import com.trading.orb.data.engine.mock.MockOrderExecutor
+import com.trading.orb.data.engine.mock.MockScenarios
 import com.trading.orb.data.model.*
 import com.trading.orb.data.repository.TradingRepository
 import com.trading.orb.ui.screens.dashboard.DashboardUiState
@@ -11,12 +14,16 @@ import com.trading.orb.ui.state.LoadingState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 @HiltViewModel
 class TradingViewModel @Inject constructor(
     private val repository: TradingRepository
 ) : ViewModel() {
+
+    // 🆕 ADD: Strategy engine
+    private var strategyEngine: OrbStrategyEngine? = null
 
     // State flows from repository
     val appState: StateFlow<AppState> = repository.appState
@@ -74,6 +81,160 @@ class TradingViewModel @Inject constructor(
         loadDashboard()
     }
 
+    // 🆕 ADD: Initialize and start mock engine
+    fun initializeAndStartMockStrategy(scenario: String = "normal") {
+        Timber.i("🧪 Initializing MOCK ORB Strategy Engine - Scenario: $scenario")
+        
+        viewModelScope.launch {
+            try {
+                // Create mock data source and config based on scenario
+                val mockDataSource = when (scenario) {
+                    "high_breakout" -> MockScenarios.successfulHighBreakout().first
+                    "stop_loss" -> MockScenarios.stopLossScenario().first
+                    else -> MockScenarios.successfulHighBreakout().first
+                }
+
+                // Create mock order executor
+                val mockExecutor = MockOrderExecutor(executionDelayMs = 500, failureRate = 0)
+
+                // Get strategy config from repository
+                val config = strategyConfig.value
+
+                // Initialize ORB Strategy Engine
+                strategyEngine = OrbStrategyEngine(
+                    marketDataSource = mockDataSource,
+                    orderExecutor = mockExecutor,
+                    config = config,
+                    riskSettings = riskSettings.value
+                )
+
+                Timber.i("✅ MOCK Strategy Engine initialized successfully")
+
+                // Start observing strategy events
+                observeStrategyEvents()
+
+                // Start the strategy
+                strategyEngine?.start()
+                Timber.i("✅ MOCK Strategy started!")
+                
+            } catch (e: Exception) {
+                Timber.e(e, "❌ Failed to initialize mock strategy")
+                _dashboardUiState.update {
+                    it.copy(
+                        error = ErrorState(
+                            hasError = true,
+                            errorMessage = "Failed to start strategy: ${e.message}",
+                            isRetryable = true,
+                            throwable = e
+                        )
+                    )
+                }
+                _uiEvent.emit(UiEvent.ShowError("Failed to start strategy: ${e.message}"))
+            }
+        }
+    }
+
+    // 🆕 ADD: Observe strategy events and update UI
+    private fun observeStrategyEvents() {
+        viewModelScope.launch {
+            strategyEngine?.events?.collect { event ->
+                handleStrategyEvent(event)
+            }
+        }
+    }
+
+    // 🆕 ADD: Handle strategy events and update dashboard UI
+    private suspend fun handleStrategyEvent(event: StrategyEvent) {
+        Timber.i("📊 Strategy Event: ${event.javaClass.simpleName}")
+        
+        when (event) {
+            is StrategyEvent.Started -> {
+                Timber.i("🟢 Strategy Started - Symbol: ${event.config.instrument.symbol}")
+                _uiEvent.emit(UiEvent.ShowSuccess("Strategy started successfully!"))
+            }
+            
+            is StrategyEvent.OrbCaptured -> {
+                Timber.i("📈 ORB Captured - High: ${event.levels.high}, Low: ${event.levels.low}")
+                _uiEvent.emit(UiEvent.ShowSuccess("ORB Levels Captured! High: ₹${String.format("%.2f", event.levels.high)}, Low: ₹${String.format("%.2f", event.levels.low)}"))
+            }
+            
+            is StrategyEvent.PositionOpened -> {
+                Timber.i("🟢 Position Opened - Side: ${event.position.side}, Price: ${event.position.entryPrice}")
+                _uiEvent.emit(UiEvent.ShowSuccess("Position opened at ₹${String.format("%.2f", event.position.entryPrice)}"))
+            }
+            
+            is StrategyEvent.PositionUpdate -> {
+                Timber.v("💹 Position Update - Current Price: ${event.position.currentPrice}")
+                // Silent update - don't spam notifications
+            }
+            
+            is StrategyEvent.PositionClosed -> {
+                Timber.i("🏁 Position Closed - P&L: ${event.trade.pnl}")
+                val pnlText = if (event.trade.pnl >= 0) "+₹" else "₹"
+                _uiEvent.emit(UiEvent.ShowSuccess("Trade closed with P&L: $pnlText${String.format("%.0f", event.trade.pnl)}"))
+            }
+            
+            is StrategyEvent.Stopped -> {
+                Timber.i("⏹️ Strategy Stopped")
+                _uiEvent.emit(UiEvent.ShowSuccess("Strategy stopped"))
+            }
+            
+            is StrategyEvent.Error -> {
+                Timber.e("❌ Strategy Error: ${event.message}")
+                _uiEvent.emit(UiEvent.ShowError("Strategy error: ${event.message}"))
+            }
+            
+            is StrategyEvent.PriceUpdate -> {
+                Timber.v("📊 Price Update: ₹${String.format("%.2f", event.ltp)}")
+                // Silent update
+            }
+            
+            is StrategyEvent.OrderFailed -> {
+                Timber.e("❌ Order Failed: ${event.message}")
+                _uiEvent.emit(UiEvent.ShowError("Order failed: ${event.message}"))
+            }
+            
+            is StrategyEvent.RiskLimitReached -> {
+                Timber.w("⚠️ Risk Limit Reached")
+                _uiEvent.emit(UiEvent.ShowError("Risk limit reached - strategy paused"))
+            }
+        }
+    }
+
+    // 🆕 ADD: Start strategy (after initialization)
+    fun startStrategy() {
+        Timber.i("Starting strategy...")
+        viewModelScope.launch {
+            try {
+                if (strategyEngine == null) {
+                    // If engine not initialized, initialize first
+                    initializeAndStartMockStrategy()
+                } else {
+                    // Otherwise just start
+                    strategyEngine?.start()
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to start strategy")
+                _uiEvent.emit(UiEvent.ShowError("Failed to start strategy: ${e.message}"))
+            }
+        }
+    }
+
+    // 🆕 ADD: Stop strategy
+    fun stopStrategy() {
+        Timber.i("Stopping strategy...")
+        viewModelScope.launch {
+            try {
+                strategyEngine?.stop()
+                Timber.i("Strategy stopped")
+                _uiEvent.emit(UiEvent.ShowSuccess("Strategy stopped"))
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to stop strategy")
+                _uiEvent.emit(UiEvent.ShowError("Failed to stop strategy: ${e.message}"))
+            }
+        }
+    }
+
     private fun loadDashboard() {
         viewModelScope.launch {
             _dashboardUiState.update { it.copy(loading = LoadingState(isLoading = true)) }
@@ -109,14 +270,14 @@ class TradingViewModel @Inject constructor(
     // Actions
     fun toggleStrategy() {
         viewModelScope.launch {
-            val result = if (appState.value.strategyStatus == StrategyStatus.ACTIVE) {
+            if (appState.value.strategyStatus == StrategyStatus.ACTIVE) {
+                // Stop the strategy
+                stopStrategy()
                 repository.stopStrategy()
             } else {
-                repository.startStrategy()
-            }
-
-            result.onFailure { error ->
-                _uiEvent.emit(UiEvent.ShowError(error.message ?: "Unknown error"))
+                // Start the strategy with mock engine
+                Timber.i("🧪 Starting MOCK ORB Strategy...")
+                initializeAndStartMockStrategy("normal")
             }
         }
     }

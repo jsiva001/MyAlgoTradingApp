@@ -127,16 +127,24 @@ class DashboardViewModel @Inject constructor(
      */
     fun toggleStrategy() {
         viewModelScope.launch {
-            val result = if (appState.value.strategyStatus == StrategyStatus.ACTIVE) {
-                repository.stopStrategy()
+            // For now, let's use mock strategy
+            // TODO: Update repository.startStrategy() when real backend is ready
+            if (appState.value.strategyStatus == StrategyStatus.ACTIVE) {
+                // Stop strategy
+                repository.stopStrategy().onFailure { error ->
+                    _uiEvent.emit(DashboardUiEvent.ShowError(error.message ?: "Failed to stop strategy"))
+                }.onSuccess {
+                    _uiEvent.emit(DashboardUiEvent.ShowSuccess("Strategy stopped"))
+                }
             } else {
-                repository.startStrategy()
-            }
-
-            result.onFailure { error ->
-                _uiEvent.emit(DashboardUiEvent.ShowError(error.message ?: "Unknown error"))
-            }.onSuccess {
-                _uiEvent.emit(DashboardUiEvent.ShowSuccess("Strategy ${if (appState.value.strategyStatus == StrategyStatus.ACTIVE) "stopped" else "started"}"))
+                // Start mock strategy
+                _uiEvent.emit(DashboardUiEvent.ShowSuccess("Starting MOCK ORB Strategy..."))
+                // This would typically call initializeMockStrategy if we had access to it
+                repository.startStrategy().onFailure { error ->
+                    _uiEvent.emit(DashboardUiEvent.ShowError(error.message ?: "Failed to start strategy"))
+                }.onSuccess {
+                    _uiEvent.emit(DashboardUiEvent.ShowSuccess("MOCK Strategy started!"))
+                }
             }
         }
     }

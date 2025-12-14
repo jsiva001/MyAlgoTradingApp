@@ -241,3 +241,62 @@ data class BacktestResult(
     val sharpeRatio: Double,
     val expectancy: Double
 )
+
+// ADD TO: data/model/Models.kt
+
+// ===== NEW MODELS FOR ORB ENGINE =====
+
+/**
+ * Candle data (OHLC)
+ */
+data class Candle(
+    val timestamp: LocalDateTime,
+    val open: Double,
+    val high: Double,
+    val low: Double,
+    val close: Double,
+    val volume: Long
+)
+
+/**
+ * Strategy events from engine
+ */
+sealed class StrategyEvent {
+    data class Started(val config: StrategyConfig) : StrategyEvent()
+    object Stopped : StrategyEvent()
+    data class OrbCaptured(val levels: OrbLevels) : StrategyEvent()
+    data class PriceUpdate(val ltp: Double) : StrategyEvent()
+    data class PositionOpened(val position: Position) : StrategyEvent()
+    data class PositionUpdate(val position: Position) : StrategyEvent()
+    data class PositionClosed(val trade: Trade) : StrategyEvent()
+    data class OrderFailed(val message: String) : StrategyEvent()
+    data class Error(val message: String) : StrategyEvent()
+    object RiskLimitReached : StrategyEvent()
+}
+
+/**
+ * Order response from broker
+ */
+data class OrderResponse(
+    val orderId: String,
+    val status: String,
+    val message: String,
+    val price: Double? = null,
+    val timestamp: LocalDateTime = LocalDateTime.now()
+)
+
+/**
+ * Mock tick data (for testing)
+ */
+data class TickData(
+    val token: String,
+    val symbol: String,
+    val ltp: Double,
+    val volume: Long,
+    val timestamp: Long,
+    val bidPrice: Double,
+    val askPrice: Double,
+    val bidQty: Int,
+    val askQty: Int
+)
+

@@ -25,9 +25,17 @@ android {
     }
 
     buildTypes {
+        debug {
+            buildConfigField("Boolean", "USE_MOCK_DATA", "true")
+            buildConfigField("String", "ANGEL_API_KEY", "\"\"")
+            buildConfigField("String", "ANGEL_ACCESS_TOKEN", "\"\"")
+        }
         getByName("release") {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            buildConfigField("Boolean", "USE_MOCK_DATA", "false")
+            buildConfigField("String", "ANGEL_API_KEY", "\"\"")
+            buildConfigField("String", "ANGEL_ACCESS_TOKEN", "\"\"")
         }
     }
 
@@ -42,6 +50,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     composeOptions {
