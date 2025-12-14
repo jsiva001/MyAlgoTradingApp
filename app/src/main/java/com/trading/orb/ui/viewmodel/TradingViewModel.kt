@@ -117,6 +117,12 @@ class TradingViewModel @Inject constructor(
                 strategyEngine?.start()
                 Timber.i("✅ MOCK Strategy started!")
                 
+                // Update repository state to ACTIVE
+                repository.startStrategy().onSuccess {
+                    Timber.i("✅ Repository strategy state updated to ACTIVE")
+                    _uiEvent.emit(UiEvent.ShowSuccess("Strategy started successfully!"))
+                }
+                
             } catch (e: Exception) {
                 Timber.e(e, "❌ Failed to initialize mock strategy")
                 _dashboardUiState.update {
@@ -267,16 +273,48 @@ class TradingViewModel @Inject constructor(
         loadDashboard()
     }
 
+    /**
+     * Refresh dashboard data
+     */
+    fun refreshDashboard() {
+        viewModelScope.launch {
+            _dashboardUiState.update { it.copy(isRefreshing = true) }
+            try {
+                // Trigger repository refresh - simulate with delay
+                kotlinx.coroutines.delay(1000)
+                _dashboardUiState.update { it.copy(isRefreshing = false) }
+            } catch (e: Exception) {
+                _dashboardUiState.update {
+                    it.copy(
+                        isRefreshing = false,
+                        error = ErrorState(
+                            hasError = true,
+                            errorMessage = e.message ?: "Failed to refresh",
+                            isRetryable = true
+                        )
+                    )
+                }
+            }
+        }
+    }
+
     // Actions
     fun toggleStrategy() {
         viewModelScope.launch {
             if (appState.value.strategyStatus == StrategyStatus.ACTIVE) {
                 // Stop the strategy
-                stopStrategy()
-                repository.stopStrategy()
+                Timber.i("🛑 Stopping strategy...")
+                strategyEngine?.stop()
+                repository.stopStrategy().onSuccess {
+                    Timber.i("✅ Strategy stopped successfully")
+                    _uiEvent.emit(UiEvent.ShowSuccess("Strategy stopped"))
+                }.onFailure { error ->
+                    Timber.e("Failed to stop strategy: ${error.message}")
+                    _uiEvent.emit(UiEvent.ShowError(error.message ?: "Failed to stop strategy"))
+                }
             } else {
                 // Start the strategy with mock engine
-                Timber.i("🧪 Starting MOCK ORB Strategy...")
+                Timber.i("🚀 Starting MOCK ORB Strategy...")
                 initializeAndStartMockStrategy("normal")
             }
         }
@@ -292,9 +330,17 @@ class TradingViewModel @Inject constructor(
 
     fun emergencyStop() {
         viewModelScope.launch {
+            Timber.i("🚨 EMERGENCY STOP triggered!")
+            // Stop strategy engine
+            strategyEngine?.stop()
+            
             // Stop strategy and close all positions
             repository.stopStrategy()
-            repository.closeAllPositions().onFailure { error ->
+            repository.closeAllPositions().onSuccess {
+                Timber.i("✅ Emergency stop executed - all positions closed")
+                _uiEvent.emit(UiEvent.ShowSuccess("Emergency stop executed - all positions closed"))
+            }.onFailure { error ->
+                Timber.e("Failed to close positions: ${error.message}")
                 _uiEvent.emit(UiEvent.ShowError(error.message ?: "Emergency stop failed"))
             }
         }

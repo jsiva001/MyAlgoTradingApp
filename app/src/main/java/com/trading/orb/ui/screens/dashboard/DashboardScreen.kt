@@ -17,25 +17,28 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.trading.orb.data.model.*
 import com.trading.orb.ui.components.*
-import com.trading.orb.ui.event.DashboardUiEvent
 import com.trading.orb.ui.state.ErrorState
 import com.trading.orb.ui.state.LoadingState
 import com.trading.orb.ui.theme.*
 import com.trading.orb.ui.utils.LaunchEventCollector
+import com.trading.orb.ui.viewmodel.TradingViewModel
+import com.trading.orb.ui.viewmodel.UiEvent
 
 @Composable
 fun DashboardScreen(
-    tradingViewModel: com.trading.orb.ui.viewmodel.TradingViewModel? = null,
-    viewModel: DashboardViewModel = hiltViewModel(),
+    tradingViewModel: TradingViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.dashboardUiState.collectAsStateWithLifecycle()
-    val appState by viewModel.appState.collectAsStateWithLifecycle()
+    val uiState by tradingViewModel.dashboardUiState.collectAsStateWithLifecycle()
+    val repoAppState by tradingViewModel.appState.collectAsStateWithLifecycle()
     
-    LaunchEventCollector(eventFlow = viewModel.uiEvent) { event ->
+    // Convert repository AppState to UI AppState
+    val appState = repoAppState.toAppState()
+    
+    LaunchEventCollector(eventFlow = tradingViewModel.uiEvent) { event ->
         when (event) {
-            is DashboardUiEvent.ShowError -> {}
-            is DashboardUiEvent.ShowSuccess -> {}
+            is UiEvent.ShowError -> {}
+            is UiEvent.ShowSuccess -> {}
             else -> {}
         }
     }
@@ -43,17 +46,10 @@ fun DashboardScreen(
     DashboardScreenContent(
         uiState = uiState,
         appState = appState,
-        onToggleStrategy = { 
-            // Use trading view model if provided, otherwise use dashboard view model
-            if (tradingViewModel != null) {
-                tradingViewModel.initializeAndStartMockStrategy("normal")
-            } else {
-                viewModel.toggleStrategy()
-            }
-        },
-        onToggleMode = { viewModel.toggleTradingMode() },
-        onEmergencyStop = { viewModel.emergencyStop() },
-        onRetry = { viewModel.retryDashboard() },
+        onToggleStrategy = { tradingViewModel.toggleStrategy() },
+        onToggleMode = { tradingViewModel.toggleTradingMode() },
+        onEmergencyStop = { tradingViewModel.emergencyStop() },
+        onRetry = { tradingViewModel.retryDashboard() },
         modifier = modifier
     )
 }
@@ -567,3 +563,16 @@ fun DashboardScreenMultiplePositionsPreview() {
     }
 }
 
+
+/**
+ * Extension function to convert repository AppState to UI AppState
+ */
+fun com.trading.orb.data.model.AppState.toAppState(): AppState {
+    return AppState(
+        tradingMode = this.tradingMode,
+        strategyStatus = this.strategyStatus,
+        connectionStatus = this.connectionStatus,
+        dailyStats = this.dailyStats,
+        orbLevels = this.orbLevels
+    )
+}
