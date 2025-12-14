@@ -10,6 +10,7 @@ import com.trading.orb.ui.state.LoadingState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 /**
@@ -127,8 +128,6 @@ class DashboardViewModel @Inject constructor(
      */
     fun toggleStrategy() {
         viewModelScope.launch {
-            // For now, let's use mock strategy
-            // TODO: Update repository.startStrategy() when real backend is ready
             if (appState.value.strategyStatus == StrategyStatus.ACTIVE) {
                 // Stop strategy
                 repository.stopStrategy().onFailure { error ->
@@ -137,13 +136,11 @@ class DashboardViewModel @Inject constructor(
                     _uiEvent.emit(DashboardUiEvent.ShowSuccess("Strategy stopped"))
                 }
             } else {
-                // Start mock strategy
-                _uiEvent.emit(DashboardUiEvent.ShowSuccess("Starting MOCK ORB Strategy..."))
-                // This would typically call initializeMockStrategy if we had access to it
+                // Start strategy via repository
                 repository.startStrategy().onFailure { error ->
                     _uiEvent.emit(DashboardUiEvent.ShowError(error.message ?: "Failed to start strategy"))
                 }.onSuccess {
-                    _uiEvent.emit(DashboardUiEvent.ShowSuccess("MOCK Strategy started!"))
+                    _uiEvent.emit(DashboardUiEvent.ShowSuccess("Strategy started!"))
                 }
             }
         }

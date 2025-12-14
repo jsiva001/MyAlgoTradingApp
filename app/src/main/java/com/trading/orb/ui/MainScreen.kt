@@ -188,7 +188,7 @@ private fun NavigationHost(
         modifier = modifier
     ) {
         composable(Screen.Dashboard.route) {
-            DashboardScreen()
+            DashboardScreen(tradingViewModel = viewModel)
         }
 
         composable(Screen.Positions.route) {

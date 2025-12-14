@@ -25,6 +25,7 @@ import com.trading.orb.ui.utils.LaunchEventCollector
 
 @Composable
 fun DashboardScreen(
+    tradingViewModel: com.trading.orb.ui.viewmodel.TradingViewModel? = null,
     viewModel: DashboardViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
@@ -42,7 +43,14 @@ fun DashboardScreen(
     DashboardScreenContent(
         uiState = uiState,
         appState = appState,
-        onToggleStrategy = { viewModel.toggleStrategy() },
+        onToggleStrategy = { 
+            // Use trading view model if provided, otherwise use dashboard view model
+            if (tradingViewModel != null) {
+                tradingViewModel.initializeAndStartMockStrategy("normal")
+            } else {
+                viewModel.toggleStrategy()
+            }
+        },
         onToggleMode = { viewModel.toggleTradingMode() },
         onEmergencyStop = { viewModel.emergencyStop() },
         onRetry = { viewModel.retryDashboard() },
