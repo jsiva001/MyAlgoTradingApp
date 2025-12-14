@@ -100,10 +100,14 @@ class OrbStrategyEngine(
             .takeWhile { isRunning && activePosition == null }
             .collect { ltp ->
                 _events.emit(StrategyEvent.PriceUpdate(ltp))
+                
+                Timber.d("📊 LTP: ₹${String.format("%.2f", ltp)} | Buy Trigger: ₹${String.format("%.2f", buyTrigger)} | Sell Trigger: ₹${String.format("%.2f", sellTrigger)}")
 
                 if (ltp >= buyTrigger) {
+                    Timber.i("🟢 BUY SIGNAL! LTP ₹${String.format("%.2f", ltp)} >= Buy Trigger ₹${String.format("%.2f", buyTrigger)}")
                     placeEntryOrder(OrderSide.BUY, ltp)
                 } else if (ltp <= sellTrigger) {
+                    Timber.i("🔴 SELL SIGNAL! LTP ₹${String.format("%.2f", ltp)} <= Sell Trigger ₹${String.format("%.2f", sellTrigger)}")
                     placeEntryOrder(OrderSide.SELL, ltp)
                 }
             }

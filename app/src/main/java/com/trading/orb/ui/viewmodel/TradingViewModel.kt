@@ -2,6 +2,7 @@ package com.trading.orb.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.trading.orb.BuildConfig
 import com.trading.orb.data.engine.OrbStrategyEngine
 import com.trading.orb.data.engine.mock.MockOrderExecutor
 import com.trading.orb.data.engine.mock.MockScenarios
@@ -15,6 +16,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.time.LocalTime
 import javax.inject.Inject
 
 @HiltViewModel
@@ -81,12 +83,31 @@ class TradingViewModel @Inject constructor(
         loadDashboard()
     }
 
+    // 🆕 ADD: Check if market is open
+    private fun isMarketOpen(): Boolean {
+        val now = LocalTime.now()
+        val marketOpen = LocalTime.of(9, 15)
+        val marketClose = LocalTime.of(15, 30)
+        return now in marketOpen..marketClose
+    }
+
     // 🆕 ADD: Initialize and start mock engine
     fun initializeAndStartMockStrategy(scenario: String = "normal") {
         Timber.i("🧪 Initializing MOCK ORB Strategy Engine - Scenario: $scenario")
         
         viewModelScope.launch {
             try {
+                // Check if market is open (or using mock)
+                if (!isMarketOpen() && !BuildConfig.USE_MOCK_DATA) {
+                    Timber.w("⚠️ Market is closed! Cannot initiate strategy in real mode")
+                    _uiEvent.emit(UiEvent.ShowError("❌ Market is closed (9:15 AM - 3:30 PM IST). Cannot initiate strategy!"))
+                    return@launch
+                }
+
+                if (BuildConfig.USE_MOCK_DATA) {
+                    Timber.i("✅ Using MOCK DATA - Market time validation skipped")
+                }
+
                 // Create mock data source and config based on scenario
                 val mockDataSource = when (scenario) {
                     "high_breakout" -> MockScenarios.successfulHighBreakout().first
@@ -116,6 +137,10 @@ class TradingViewModel @Inject constructor(
                 // Start the strategy
                 strategyEngine?.start()
                 Timber.i("✅ MOCK Strategy started!")
+                Timber.i("📊 Market Data Source: ${mockDataSource.javaClass.simpleName}")
+                Timber.i("🎯 Trading Symbol: ${config.instrument.symbol} | Lot Size: ${config.lotSize}")
+                Timber.i("⏰ ORB Window: ${config.orbStartTime} - ${config.orbEndTime}")
+                Timber.i("💰 Stop Loss: ${config.stopLossPoints} points | Target: ${config.targetPoints} points")
                 
                 // Update repository state to ACTIVE
                 repository.startStrategy().onSuccess {
@@ -161,21 +186,25 @@ class TradingViewModel @Inject constructor(
             
             is StrategyEvent.OrbCaptured -> {
                 Timber.i("📈 ORB Captured - High: ${event.levels.high}, Low: ${event.levels.low}")
+                Timber.i("🎯 Buy Trigger: ₹${String.format("%.2f", event.levels.buyTrigger)} | Sell Trigger: ₹${String.format("%.2f", event.levels.sellTrigger)}")
                 _uiEvent.emit(UiEvent.ShowSuccess("ORB Levels Captured! High: ₹${String.format("%.2f", event.levels.high)}, Low: ₹${String.format("%.2f", event.levels.low)}"))
             }
             
+            is StrategyEvent.PriceUpdate -> {
+                Timber.i("💹 LTP Price: ₹${String.format("%.2f", event.ltp)}")
+            }
+            
             is StrategyEvent.PositionOpened -> {
-                Timber.i("🟢 Position Opened - Side: ${event.position.side}, Price: ${event.position.entryPrice}")
+                Timber.i("🟢 Position Opened - Side: ${event.position.side}, Entry Price: ₹${String.format("%.2f", event.position.entryPrice)}, SL: ₹${String.format("%.2f", event.position.stopLoss)}, Target: ₹${String.format("%.2f", event.position.target)}")
                 _uiEvent.emit(UiEvent.ShowSuccess("Position opened at ₹${String.format("%.2f", event.position.entryPrice)}"))
             }
             
             is StrategyEvent.PositionUpdate -> {
-                Timber.v("💹 Position Update - Current Price: ${event.position.currentPrice}")
-                // Silent update - don't spam notifications
+                Timber.v("💹 Position Update - Current Price: ₹${String.format("%.2f", event.position.currentPrice)} | P&L: ₹${String.format("%.2f", event.position.currentPrice - event.position.entryPrice)}")
             }
             
             is StrategyEvent.PositionClosed -> {
-                Timber.i("🏁 Position Closed - P&L: ${event.trade.pnl}")
+                Timber.i("🏁 Position Closed - Exit Price: ₹${String.format("%.2f", event.trade.exitPrice)}, Reason: ${event.trade.exitReason}, P&L: ₹${String.format("%.2f", event.trade.pnl)}")
                 val pnlText = if (event.trade.pnl >= 0) "+₹" else "₹"
                 _uiEvent.emit(UiEvent.ShowSuccess("Trade closed with P&L: $pnlText${String.format("%.0f", event.trade.pnl)}"))
             }
@@ -188,11 +217,6 @@ class TradingViewModel @Inject constructor(
             is StrategyEvent.Error -> {
                 Timber.e("❌ Strategy Error: ${event.message}")
                 _uiEvent.emit(UiEvent.ShowError("Strategy error: ${event.message}"))
-            }
-            
-            is StrategyEvent.PriceUpdate -> {
-                Timber.v("📊 Price Update: ₹${String.format("%.2f", event.ltp)}")
-                // Silent update
             }
             
             is StrategyEvent.OrderFailed -> {
