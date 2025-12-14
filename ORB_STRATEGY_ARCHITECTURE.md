@@ -10,25 +10,35 @@
 ## 📊 What is ORB Strategy?
 
 ### Core Concept
-**Open Range Breakout** is an intraday trading strategy that:
+**Open Range Breakout (ORB)** is an intraday options trading strategy that trades index options (CE/PE) based on the opening range breakout. It works as follows:
 
 1. **Identifies the Opening Range** (First 15-minute candle)
-   - High of the 15-min opening candle = RESISTANCE
-   - Low of the 15-min opening candle = SUPPORT
+   - High of the 15-min opening candle = **RESISTANCE Level**
+   - Low of the 15-min opening candle = **SUPPORT Level**
+   - Example: High: ₹45,250 | Low: ₹45,210 | Range: 40 points
 
-2. **Waits for Breakout**
-   - If LTP > High (Resistance) → **BUY Signal** 🟢
-   - If LTP < Low (Support) → **SELL Signal** 🔴
+2. **Waits for Breakout and Determines Direction**
+   - **IF LTP > High (Resistance) → BULLISH Signal 🟢**
+     - Action: **BUY CALL OPTIONS (CE)**
+     - Reason: Price breaking upward = bullish sentiment
+     - Entry: At or near resistance breakout
+   
+   - **IF LTP < Low (Support) → BEARISH Signal 🔴**
+     - Action: **BUY PUT OPTIONS (PE)**
+     - Reason: Price breaking downward = bearish sentiment
+     - Entry: At or near support breakdown
 
 3. **Executes Trade with Risk Management**
-   - **Entry:** Breakout price + offset points
-   - **Target:** Entry + profit target points
-   - **Stop Loss:** Entry - stop loss points
+   - **Entry Price:** Breakout price + offset points (0.5-1 point buffer)
+   - **Target Profit:** Entry + target points (e.g., +50 points)
+   - **Stop Loss:** Entry - stop loss points (e.g., -30 points)
+   - **Position Size:** 1 lot (50 contracts for BANKNIFTY)
 
 4. **Closes Position**
-   - When Target is hit (Take Profit) ✅
-   - When Stop Loss is hit (Cut Loss) ❌
-   - Or at market close
+   - When **Target is hit** (Take Profit) ✅ → Exit with profit
+   - When **Stop Loss is hit** (Cut Loss) ❌ → Exit with loss
+   - At **Market close** ⏰ → Exit remaining position
+   - **Only ONE trade per direction per day**
 
 ---
 
@@ -98,80 +108,148 @@
 ```
 ┌──────────────────────────────────────────┐
 │  MARKET DATA (WebSocket)                 │
-│  Every 100ms: New LTP tick               │
+│  Real-time LTP updates from Index        │
 │  Example: BANKNIFTY = 45,230.50          │
+│  Updates: Every 100ms (real) / 1000ms    │
 └──────────────────┬───────────────────────┘
                    ↓
 ┌──────────────────────────────────────────┐
-│  CANDLE CONSTRUCTION                     │
-│  Time Frame: 15 minutes                  │
-│  Aggregate ticks into candles:           │
-│  - Open (first tick in 15-min)           │
-│  - High (highest tick in 15-min)         │
-│  - Low (lowest tick in 15-min)           │
-│  - Close (last tick in 15-min)           │
-│  - Volume                                │
+│  CANDLE CONSTRUCTION (15-minute)         │
+│  Aggregate ticks into OHLCV candles:     │
+│  - Open (first tick in 15-min window)    │
+│  - High (highest tick in 15-min window)  │
+│  - Low (lowest tick in 15-min window)    │
+│  - Close (last tick in 15-min window)    │
+│  - Volume (tick count)                   │
+│                                          │
+│  Example: 9:15-9:30 candle               │
+│  Open: 45,200 | High: 45,250             │
+│  Low: 45,210 | Close: 45,245             │
 └──────────────────┬───────────────────────┘
                    ↓
 ┌──────────────────────────────────────────┐
 │  ORB LEVELS CALCULATION (1st candle)     │
-│  Opening Range Breakout (first 15-min):  │
+│  Extract Resistance & Support:           │
 │  ┌──────────────────────────┐            │
-│  │ High: 45,250 (RESISTANCE)│            │
-│  │ Low:  45,210 (SUPPORT)   │            │
-│  │ Range: 40 points         │            │
+│  │ Resistance: 45,250       │            │
+│  │ Support: 45,210          │            │
+│  │ Range Width: 40 points   │            │
+│  │ Offset Buffer: 0.5 point │            │
+│  │                          │            │
+│  │ Breakout Triggers:       │            │
+│  │ - BUY CE when > 45,250.5 │            │
+│  │ - BUY PE when < 45,209.5 │            │
 │  └──────────────────────────┘            │
-│  Set breakout thresholds:                │
-│  - Buy above: 45,250 + offset            │
-│  - Sell below: 45,210 - offset           │
 └──────────────────┬───────────────────────┘
                    ↓
 ┌──────────────────────────────────────────┐
-│  CONTINUOUS MONITORING                   │
+│  CONTINUOUS MONITORING (9:30-15:30)      │
 │  For each new LTP tick:                  │
-│  1. Is LTP > High? → BUY signal ✅       │
-│  2. Is LTP < Low?  → SELL signal ✅      │
-│  3. Still waiting? → Keep monitoring     │
+│  ┌────────────────────────────┐          │
+│  │ 1. LTP > 45,250.5?         │          │
+│  │    → BULLISH BREAKOUT 🟢   │          │
+│  │    → Action: BUY CALL (CE) │          │
+│  │                            │          │
+│  │ 2. LTP < 45,209.5?         │          │
+│  │    → BEARISH BREAKOUT 🔴   │          │
+│  │    → Action: BUY PUT (PE)  │          │
+│  │                            │          │
+│  │ 3. Neither? → Wait         │          │
+│  └────────────────────────────┘          │
+│  Only execute ONE trade per direction    │
 └──────────────────┬───────────────────────┘
                    ↓
 ┌──────────────────────────────────────────┐
 │  BREAKOUT DETECTED! 🎯                   │
-│  LTP: 45,260 > High: 45,250              │
-│  Action: PLACE BUY ORDER                 │
+│  ┌──────────────────────────┐            │
+│  │ LTP: 45,255 > High: 45,250│            │
+│  │ Direction: BULLISH 🟢    │            │
+│  │ Instrument Type: CE      │            │
+│  │                          │            │
+│  │ Action:                  │            │
+│  │ → BUY CALL OPTION (CE)   │            │
+│  │ → Entry at 45,255        │            │
+│  └──────────────────────────┘            │
 └──────────────────┬───────────────────────┘
                    ↓
 ┌──────────────────────────────────────────┐
 │  ORDER EXECUTION                         │
 │  ┌──────────────────────────┐            │
-│  │ Entry Price: 45,260      │            │
-│  │ Target: 45,260 + 50 pts  │            │
-│  │ Stop Loss: 45,260 - 30   │            │
-│  │ Position: LONG (1 lot)   │            │
+│  │ Instrument: BANKNIFTY CE │            │
+│  │ Entry Price: 45,255      │            │
+│  │ Quantity: 1 lot (50)     │            │
+│  │ Target: 45,305 (+50pts)  │            │
+│  │ Stop Loss: 45,225 (-30)  │            │
+│  │ Position Type: LONG CE   │            │
 │  └──────────────────────────┘            │
 │  Order Status: EXECUTED ✅               │
 └──────────────────┬───────────────────────┘
                    ↓
 ┌──────────────────────────────────────────┐
 │  POSITION MANAGEMENT                     │
-│  Monitor LTP real-time:                  │
-│  ┌────────────────────┐                  │
-│  │ ✅ Hit Target?     │                  │
-│  │    Close → P&L +50 │                  │
-│  │                    │                  │
-│  │ ❌ Hit Stop Loss?  │                  │
-│  │    Close → P&L -30 │                  │
-│  │                    │                  │
-│  │ ⏰ Market Close?   │                  │
-│  │    Close → Exit    │                  │
-│  └────────────────────┘                  │
+│  Monitor CE Option LTP real-time:        │
+│  ┌────────────────────────┐              │
+│  │ Entry: 45,255 (CE)     │              │
+│  │ Current: 45,290        │              │
+│  │ Profit: +35 points     │              │
+│  │                        │              │
+│  │ Check conditions:      │              │
+│  │ ✅ Hit Target 45,305?  │              │
+│  │    → CLOSE for +50 pts │              │
+│  │ ❌ Hit SL 45,225?      │              │
+│  │    → CLOSE for -30 pts │              │
+│  │ ⏰ Market Close 15:30?  │              │
+│  │    → EXIT position     │              │
+│  └────────────────────────┘              │
 └──────────────────┬───────────────────────┘
                    ↓
 ┌──────────────────────────────────────────┐
-│  TRADE CLOSED                            │
-│  Record trade history                    │
-│  Update P&L metrics                      │
-│  Ready for next opportunity              │
+│  TRADE CLOSED ✅                         │
+│  ┌──────────────────────────┐            │
+│  │ Exit Type: Target Hit    │            │
+│  │ Exit Price: 45,305       │            │
+│  │ P&L: +50 points          │            │
+│  │ Duration: 12 minutes     │            │
+│  │                          │            │
+│  │ → Record to trade history│            │
+│  │ → Update daily metrics   │            │
+│  │ → Reset for next signal  │            │
+│  │ → Ready for PE trade now │            │
+│  └──────────────────────────┘            │
+│  Continue monitoring...                  │
+│  (Can do PE trade if not already done)   │
 └──────────────────────────────────────────┘
+```
+
+---
+
+### Strategy Rules:
+
+```
+📋 TRADING RULES:
+
+1. OPENING RANGE (9:15-9:30 IST)
+   └─ Capture High and Low from first candle
+   
+2. BREAKOUT TRIGGERS (9:30-15:30 IST)
+   ├─ If price breaks ABOVE High
+   │  └─ BUY CALL OPTION (CE) for upside
+   │
+   └─ If price breaks BELOW Low
+      └─ BUY PUT OPTION (PE) for downside
+
+3. POSITION MANAGEMENT
+   ├─ Entry: At breakout price + offset
+   ├─ Target: +50 points profit
+   ├─ Stop Loss: -30 points loss
+   ├─ Lot Size: 1 lot (50 contracts for BANKNIFTY)
+   └─ Max Trades: 1 CE + 1 PE = 2 trades/day max
+
+4. EXIT CONDITIONS (in order of priority)
+   ├─ Target Hit ✅ → Close position
+   ├─ Stop Loss Hit ❌ → Close position
+   ├─ Market Close (3:30 PM) → Force exit
+   └─ 15:30 IST → No new trades after this
 ```
 
 ---
@@ -390,34 +468,53 @@ class AngelOrderExecutor(
 
 ```kotlin
 data class StrategyConfig(
-    // Symbol to trade
-    val instrument: Instrument = Instrument(
-        symbol = "BANKNIFTY24DEC22000CE",
-        exchange = "NFO",
-        lotSize = 50,
-        tickSize = 0.05,
-        displayName = "BANKNIFTY 22000 CE"
-    ),
+    // PRIMARY INSTRUMENT: INDEX (for ORB calculation)
+    val indexSymbol: String = "NIFTY50",  // Or BANKNIFTY, FINNIFTY
     
-    // ORB Parameters
-    val breakoutOffsetPoints: Double = 0.5,  // Extra points to confirm breakout
-    val profitTargetPoints: Double = 50.0,   // How much profit to take
-    val stopLossPoints: Double = 30.0,       // How much loss to cut
+    // TRADING INSTRUMENTS: OPTIONS (for actual trades)
+    val callOptionSymbol: String = "BANKNIFTY24DEC22000CE",  // To trade on bullish breakout
+    val putOptionSymbol: String = "BANKNIFTY24DEC22000PE",   // To trade on bearish breakout
     
-    // Session Parameters
-    val sessionStartTime: LocalTime = LocalTime.of(9, 15),
-    val sessionEndTime: LocalTime = LocalTime.of(15, 30),
-    val orbTimeframeMinutes: Int = 15,  // Opening range duration
+    val exchange: String = "NFO",
+    val lotSize: Int = 50,          // Lot size for BANKNIFTY
+    val tickSize: Double = 0.05,
     
-    // Position Management
-    val maxPositionsPerDay: Int = 5,    // Max number of trades
-    val lotSize: Int = 1,               // Number of contracts
-    val riskPerTrade: Double = 100.0,   // Risk per trade in rupees
+    // ORB PARAMETERS
+    val breakoutOffsetPoints: Double = 0.5,    // Buffer to confirm breakout
+    val profitTargetPoints: Double = 50.0,     // Target profit in points
+    val stopLossPoints: Double = 30.0,         // Stop loss in points
     
-    // Strategy Control
+    // SESSION PARAMETERS (IST - Indian Standard Time)
+    val sessionStartTime: LocalTime = LocalTime.of(9, 15),   // Market open
+    val orbCaptureStartTime: LocalTime = LocalTime.of(9, 15),
+    val orbCaptureEndTime: LocalTime = LocalTime.of(9, 30),  // First 15 minutes
+    val sessionEndTime: LocalTime = LocalTime.of(15, 30),    // Market close
+    val orbTimeframeMinutes: Int = 15,
+    
+    // POSITION MANAGEMENT
+    val maxCallsPerDay: Int = 1,           // Max CE trades per day
+    val maxPutsPerDay: Int = 1,            // Max PE trades per day
+    val maxPositionsPerDay: Int = 2,       // Total max trades
+    val riskPerTrade: Double = 100.0,      // Risk in rupees
+    
+    // STRATEGY CONTROL
     val isActive: Boolean = false,
-    val tradeDirection: TradeDirection = TradeDirection.BOTH  // BUY, SELL, or BOTH
+    val tradeCallOptions: Boolean = true,  // Enable CE trading
+    val tradePutOptions: Boolean = true,   // Enable PE trading
+    
+    // EXAMPLE VALUES:
+    // High (Resistance): 45,250
+    // Low (Support): 45,210
+    // Bullish Trigger: 45,250 + 0.5 = 45,250.5 → BUY CE
+    // Bearish Trigger: 45,210 - 0.5 = 45,209.5 → BUY PE
 )
+
+// TRADING LOGIC:
+// 1. Monitor INDEX (NIFTY/BANKNIFTY) price
+// 2. Capture ORB levels (High/Low) from 9:15-9:30
+// 3. If price > High + offset → BUY CALL OPTION
+// 4. If price < Low - offset → BUY PUT OPTION
+// 5. Each trade: 1 lot, +50 target, -30 stop loss
 ```
 
 ---
@@ -427,48 +524,59 @@ data class StrategyConfig(
 ### Core Models
 
 ```kotlin
-// Candle (OHLCV)
+// INDEX CANDLE (OHLCV) - Used for ORB calculation
 data class Candle(
     val timestamp: LocalDateTime,
     val open: Double,
-    val high: Double,
-    val low: Double,
+    val high: Double,      // Resistance level
+    val low: Double,       // Support level
     val close: Double,
     val volume: Long
 )
 
-// ORB Levels
+// ORB LEVELS - Extracted from opening candle
 data class OrbLevels(
-    val high: Double,      // Resistance
-    val low: Double,       // Support
-    val open: Double,
-    val close: Double,
-    val rangeWidth: Double
+    val high: Double,           // Resistance = High of 9:15-9:30 candle
+    val low: Double,            // Support = Low of 9:15-9:30 candle
+    val buyTrigger: Double,     // high + offset (e.g., 45,250.5)
+    val sellTrigger: Double,    // low - offset (e.g., 45,209.5)
+    val rangeWidth: Double      // high - low
 )
 
-// Open Position
+// OPTION POSITION (CE or PE)
 data class Position(
     val positionId: String,
-    val symbol: String,
-    val quantity: Int,
+    val optionType: OptionType,      // CE or PE
+    val optionSymbol: String,        // e.g., "BANKNIFTY24DEC22000CE"
     val entryPrice: Double,
     val currentPrice: Double,
+    val quantity: Int,               // e.g., 50 contracts
     val pnl: Double,
-    val status: PositionStatus  // OPEN, PROFIT_TARGET, STOP_LOSS
+    val targetPrice: Double,         // Entry + 50 pts
+    val stopLossPrice: Double,       // Entry - 30 pts
+    val status: PositionStatus
 )
 
-// Trade History
+// COMPLETED TRADE
 data class Trade(
     val tradeId: String,
-    val symbol: String,
+    val optionType: OptionType,      // CE or PE
+    val optionSymbol: String,
     val entryTime: LocalDateTime,
     val exitTime: LocalDateTime,
     val entryPrice: Double,
     val exitPrice: Double,
     val quantity: Int,
     val pnl: Double,
-    val closeReason: TradeCloseReason  // TARGET_HIT, STOP_HIT, MANUAL
+    val closeReason: TradeCloseReason
 )
+
+// OPTION TYPES
+enum class OptionType {
+    CE,  // Call Option (for bullish trades)
+    PE   // Put Option (for bearish trades)
+}
+```
 
 // Order
 data class Order(
@@ -524,68 +632,134 @@ object EngineModule {
 
 ## 🚀 How It Works (End-to-End)
 
-### Step 1: User Configures Strategy
+### Step 1: User Initiates Strategy
 ```
-Dashboard → Strategy Config Screen
-├─ Select instrument (BANKNIFTY)
-├─ Set profit target (50 points)
-├─ Set stop loss (30 points)
-├─ Set session time (9:15-15:30)
-└─ Click "Start Strategy" ✅
-```
-
-### Step 2: Strategy Initialization
-```
-TradingViewModel.startStrategy()
+Dashboard → Click "START" button
     ↓
-OrbStrategyEngine.startStrategy()
+Strategy Status changes from INACTIVE to RUNNING
     ↓
-Subscribe to MarketDataSource (Mock or Real)
-    ↓
-Start listening to LTP updates
-    ↓
-Emit StrategyEvent.Started
+User sees: "Strategy started successfully!"
 ```
 
-### Step 3: Candle Building (Real-Time)
+### Step 2: ORB Capture (9:15-9:30 IST)
 ```
-LTP ticks arrive (every 1000ms in mock)
+Monitor INDEX (NIFTY/BANKNIFTY) LTP
     ↓
-Aggregate into 15-minute candles
+Build 15-minute candle from ticks
     ↓
-When candle closes: Emit CandleCompleted event
+Candle closes at 9:30:
+├─ High: 45,250 (RESISTANCE)
+├─ Low: 45,210 (SUPPORT)
+├─ Range: 40 points
+└─ Thresholds: High+0.5 / Low-0.5
     ↓
-Calculate ORB levels from first candle
+Emit: StrategyEvent.OrbCaptured
+    ↓
+Dashboard shows ORB Levels Card:
+├─ Resistance: ₹45,250
+├─ Support: ₹45,210
+└─ User sees: "ORB Levels Captured!"
 ```
 
-### Step 4: Breakout Detection
+### Step 3: Breakout Monitoring (9:30-15:30 IST)
 ```
-Monitor every LTP tick
+For each LTP update from INDEX:
+
+Option A: BULLISH BREAKOUT 🟢
+    ├─ Condition: INDEX LTP > 45,250.5
+    ├─ Direction: BULLISH
+    ├─ Action: BUY CALL OPTION (CE)
+    └─ Example: Buy BANKNIFTY 22000 CE
+    
+Option B: BEARISH BREAKOUT 🔴
+    ├─ Condition: INDEX LTP < 45,209.5
+    ├─ Direction: BEARISH
+    ├─ Action: BUY PUT OPTION (PE)
+    └─ Example: Buy BANKNIFTY 22000 PE
+    
+Option C: NO BREAKOUT
+    └─ Keep monitoring...
+
+⚡ IMPORTANT:
+   - Only execute ONE CE trade per day
+   - Only execute ONE PE trade per day
+   - Once breakout happens, move to Step 4
+```
+
+### Step 4: Order Execution on Breakout
+```
+BULLISH SCENARIO (Price > Resistance):
     ↓
-Compare with ORB High/Low
+Automatic BUY CALL OPTION order:
+├─ Instrument: BANKNIFTY 22000 CE
+├─ Entry Price: 45,255
+├─ Quantity: 50 (1 lot)
+├─ Target Price: 45,255 + 50 = 45,305
+├─ Stop Loss Price: 45,255 - 30 = 45,225
+└─ Status: EXECUTED ✅
     ↓
-LTP > High? → Buy signal detected 🟢
-    ↓
-Execute order automatically
-    ↓
-Emit PositionOpened event
+Dashboard updates:
+├─ Active Positions: 1
+├─ Position Type: LONG CE
+└─ User sees: "Position opened at ₹45,255"
 ```
 
 ### Step 5: Position Management
 ```
-Open position created
+Open CE/PE Position:
     ↓
-Monitor LTP continuously
+Monitor OPTION LTP continuously:
+    
+Status 1: TARGET HIT ✅
+    ├─ Condition: Option LTP reaches 45,305
+    ├─ P&L: +50 points profit
+    ├─ Action: CLOSE position automatically
+    ├─ Dashboard: P&L updates to +₹750 (50pts × 15 rupees/point)
+    └─ User sees: "Trade closed with P&L: +₹750"
+    
+Status 2: STOP LOSS HIT ❌
+    ├─ Condition: Option LTP falls to 45,225
+    ├─ P&L: -30 points loss
+    ├─ Action: CLOSE position automatically
+    ├─ Dashboard: P&L updates to -₹450 (30pts × 15 rupees/point)
+    └─ User sees: "Trade closed with P&L: -₹450"
+    
+Status 3: MARKET CLOSE ⏰
+    ├─ Time: 15:30 IST (market close)
+    ├─ Action: Force close all positions
+    ├─ P&L: Whatever position shows at close
+    └─ User sees: "Position closed at market close"
+
+Status 4: MANUAL STOP (User clicks STOP)
+    ├─ Action: Close all positions immediately
+    ├─ P&L: Current unrealized profit/loss
+    └─ Dashboard resets
+```
+
+### Step 6: Post-Trade Status
+```
+After position closes:
     ↓
-LTP hits Target? → Close for profit ✅
+Trade recorded to history:
+├─ Trade Type: CE or PE
+├─ Entry Price: 45,255
+├─ Exit Price: 45,305 (or 45,225)
+├─ P&L: +₹750 or -₹450
+├─ Duration: 12 minutes
+└─ Close Reason: TARGET_HIT or STOP_HIT
     ↓
-LTP hits Stop Loss? → Close for loss ❌
+Dashboard metrics updated:
+├─ Today's P&L: +₹750 or -₹450
+├─ Active Positions: 0
+├─ Win Rate: Updated
+├─ Total Trades: Incremented
+└─ Ready for next trade!
     ↓
-Emit PositionClosed event
-    ↓
-Record to Trade History
-    ↓
-Update Dashboard metrics
+Strategy continues monitoring for next breakout:
+├─ If CE just closed: Can still do PE
+├─ If PE just closed: Can still do CE
+├─ If both done: Wait or end day
+└─ Continue until 15:30 market close
 ```
 
 ---
@@ -593,33 +767,52 @@ Update Dashboard metrics
 ## 📱 UI Screens
 
 ### Dashboard Screen
-- **Real-time stats:**
-  - Today's P&L
-  - Active positions
-  - Win rate
-  - Total trades
+- **Real-time Stats:**
+  - Today's P&L (updates with each trade)
+  - Active positions (0 or 1)
+  - Win rate (wins / total trades)
+  - Total trades count
 - **ORB Levels Card:**
-  - Resistance (High)
-  - Support (Low)
-  - Current LTP
-  - Range width
+  - Resistance: ₹45,250 (High)
+  - Support: ₹45,210 (Low)
+  - Current INDEX LTP
+  - Range width: 40 points
 - **Strategy Status:**
-  - Active/Inactive
-  - Start/Stop buttons
+  - ● Running / ○ Inactive
+  - [START] or [STOP] button
+- **Active Position Card (if trade open):**
+  - Option Type: CE or PE
+  - Entry Price
+  - Current Price
+  - Unrealized P&L
+  - Target & Stop Loss
 
 ### Strategy Config Screen
+- **Index Selection:**
+  - NIFTY50
+  - BANKNIFTY
+  - FINNIFTY
+- **Option Selection:**
+  - Call Option (CE)
+  - Put Option (PE)
 - **Parameters:**
-  - Instrument selection
-  - Time frame (15-min default)
-  - Target profit
-  - Stop loss
-  - Risk per trade
-  - Max positions per day
-- **Session Times:**
-  - Market open/close
-  - Strategy hours
+  - Profit target: 50 points
+  - Stop loss: 30 points
+  - Offset: 0.5 point
+- **Risk Settings:**
+  - Max CE trades/day: 1
+  - Max PE trades/day: 1
+  - Risk per trade: ₹100
 
 ### Positions Screen
+- **Open Positions (if any):**
+  - Option Type (CE/PE)
+  - Entry Price
+  - Current Price
+  - P&L (green if profit, red if loss)
+  - Target & Stop Loss levels
+  - Time elapsed
+  - [CLOSE] button
 - **Open Positions:**
   - Entry price
   - Current price
