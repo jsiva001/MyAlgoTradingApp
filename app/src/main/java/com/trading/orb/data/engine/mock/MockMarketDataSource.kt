@@ -13,14 +13,14 @@ import kotlin.random.Random
 class MockMarketDataSource(
     private val basePrice: Double = 185.0,
     private val volatility: Double = 0.5,
-    private val updateIntervalMs: Long = 1000
+    private val updateIntervalMs: Long = 2000
 ) : MarketDataSource {
 
     private var currentPrice = basePrice
     private val random = Random.Default
 
     override fun subscribeLTP(symbol: String): Flow<Double> = flow {
-        Timber.d("Mock: Subscribing to $symbol")
+        Timber.i("📡 Mock: Subscribing to LTP stream for $symbol (basePrice: ₹$basePrice, volatility: $volatility, interval: ${updateIntervalMs}ms)")
 
         while (true) {
             val priceChange = random.nextDouble(-volatility, volatility)
@@ -31,6 +31,7 @@ class MockMarketDataSource(
             }
 
             currentPrice = currentPrice.coerceAtLeast(1.0)
+            Timber.i("💰 Mock LTP update: ₹${String.format("%.2f", currentPrice)}")
             emit(currentPrice)
 
             delay(updateIntervalMs)

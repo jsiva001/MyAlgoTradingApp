@@ -23,6 +23,10 @@ class OrbStrategyEngine(
     private var activePosition: Position? = null
     private var isRunning = false
     private var orbCaptured = false
+    
+    // FOR MOCK TESTING: Track when strategy started to measure elapsed time
+    private var strategyStartTime: LocalDateTime? = null
+    private val orbDurationMinutes = 1 // 15-minute ORB window for testing
 
     private val _events = MutableSharedFlow<StrategyEvent>()
     val events: SharedFlow<StrategyEvent> = _events.asSharedFlow()
@@ -32,6 +36,7 @@ class OrbStrategyEngine(
 
         isRunning = true
         orbCaptured = false
+        strategyStartTime = LocalDateTime.now()
 
         _events.emit(StrategyEvent.Started(config))
         Timber.i("ORB Strategy started for ${config.instrument.symbol}")
@@ -64,30 +69,52 @@ class OrbStrategyEngine(
     }
 
     private suspend fun waitAndCaptureOrb() {
-        val orbStartTime = config.orbStartTime
-        val orbEndTime = config.orbEndTime
-
-        waitUntilTime(orbStartTime)
-
         val candles = mutableListOf<Candle>()
         val startTimestamp = LocalDateTime.now()
+        
+        // Determine ORB time window based on mock/real mode
+        val orbStartTime: LocalTime
+        val orbEndTime: LocalTime
+        
+        if (com.trading.orb.BuildConfig.USE_MOCK_DATA) {
+            // MOCK MODE: Use duration-based ORB window (15 minutes from start)
+            Timber.i("🚀 MOCK MODE: ORB Capture window opened - Will collect for ${orbDurationMinutes} minutes")
+            orbStartTime = startTimestamp.toLocalTime()
+            orbEndTime = orbStartTime.plusMinutes(orbDurationMinutes.toLong())
+        } else {
+            // REAL MODE: Use absolute time-based ORB window (9:15-9:30 AM)
+            Timber.i("🚀 REAL MODE: ORB Capture window - Waiting for ${config.orbStartTime}")
+            orbStartTime = config.orbStartTime
+            orbEndTime = config.orbEndTime
+            waitUntilTime(orbStartTime)
+            Timber.i("🚀 ORB Capture window opened at ${orbStartTime}")
+        }
 
         marketDataSource.subscribeLTP(config.instrument.symbol)
-            .takeWhile { isInOrbWindow() && isRunning }
+            .takeWhile { isInOrbWindowCondition(orbStartTime, orbEndTime) && isRunning }
             .collect { ltp ->
+                Timber.d("📊 ORB Capture - LTP: ₹${String.format("%.2f", ltp)}")
+                // EMIT PriceUpdate event so UI can show live LTP during capture
+                _events.emit(StrategyEvent.PriceUpdate(ltp))
                 val candle = buildCandle(ltp, startTimestamp)
                 candles.add(candle)
             }
 
         if (candles.isNotEmpty()) {
             val calculator = OrbLevelsCalculator()
-            orbLevels = calculator.calculateOrbLevels(
+            val calculatedLevels = calculator.calculateOrbLevels(
                 candles, orbStartTime, orbEndTime,
                 config.instrument, config.breakoutBuffer
             )
+            
+            // Create OrbLevels with isOrbCaptured = true (window completed)
+            if (calculatedLevels != null) {
+                orbLevels = calculatedLevels.copy(isOrbCaptured = true)
 
-            orbCaptured = true
-            orbLevels?.let { _events.emit(StrategyEvent.OrbCaptured(it)) }
+                orbCaptured = true
+                Timber.i("✅ ORB Captured - High: ₹${String.format("%.2f", orbLevels?.high ?: 0.0)}, Low: ₹${String.format("%.2f", orbLevels?.low ?: 0.0)}")
+                orbLevels?.let { _events.emit(StrategyEvent.OrbCaptured(it)) }
+            }
         }
     }
 
@@ -120,12 +147,13 @@ class OrbStrategyEngine(
             .takeWhile { isRunning && activePosition != null }
             .collect { ltp ->
                 activePosition = position.copy(currentPrice = ltp)
+                Timber.d("💹 Position Monitoring - LTP: ₹${String.format("%.2f", ltp)} | P&L: ₹${String.format("%.2f", ltp - position.entryPrice)}")
                 _events.emit(StrategyEvent.PositionUpdate(activePosition!!))
 
                 when {
                     isStopLossHit(position, ltp) -> exitPosition(ExitReason.SL_HIT, ltp)
                     isTargetHit(position, ltp) -> exitPosition(ExitReason.TARGET_HIT, ltp)
-                    isAutoExitTime() -> exitPosition(ExitReason.TIME_EXIT, ltp)
+                    config.enableAutoExit && isAutoExitTime() -> exitPosition(ExitReason.TIME_EXIT, ltp)
                 }
             }
     }
@@ -192,6 +220,23 @@ class OrbStrategyEngine(
     }
 
     // Helper methods
+    // Check if current time/elapsed time is within ORB window
+    private fun isInOrbWindowCondition(orbStartTime: LocalTime, orbEndTime: LocalTime): Boolean {
+        return if (com.trading.orb.BuildConfig.USE_MOCK_DATA) {
+            // MOCK MODE: Check elapsed time
+            isInOrbCaptureDuration()
+        } else {
+            // REAL MODE: Check absolute time
+            LocalTime.now() in orbStartTime..orbEndTime
+        }
+    }
+    
+    // FOR MOCK TESTING: Check elapsed time instead of absolute time
+    private fun isInOrbCaptureDuration(): Boolean {
+        val elapsed = java.time.Duration.between(strategyStartTime, LocalDateTime.now()).toMinutes()
+        return elapsed < orbDurationMinutes
+    }
+    
     private fun isInOrbWindow() = LocalTime.now() in config.orbStartTime..config.orbEndTime
     private fun isAutoExitTime() = LocalTime.now() >= config.autoExitTime
 

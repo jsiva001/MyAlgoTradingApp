@@ -7,7 +7,7 @@ import java.time.LocalTime
 object MockScenarios {
 
     fun successfulHighBreakout(): Pair<MockMarketDataSource, StrategyConfig> {
-        val dataSource = MockMarketDataSource(basePrice = 185.0, volatility = 0.3)
+        val dataSource = MockMarketDataSource(basePrice = 185.0, volatility = 1.5)
 
         val config = StrategyConfig(
             instrument = Instrument("NIFTY24DEC22000CE", "NSE", 50, 0.05, "NIFTY 22000 CE"),

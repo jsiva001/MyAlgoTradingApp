@@ -37,6 +37,8 @@ enum class ExitReason {
     SL_HIT,
     TIME_EXIT,
     MANUAL,
+    MANUAL_EXIT,      // Manual close from UI
+    EMERGENCY_EXIT,   // Emergency stop button
     CIRCUIT_BREAKER
 }
 
@@ -78,7 +80,8 @@ data class OrbLevels(
     val low: Double,
     val ltp: Double,
     val breakoutBuffer: Int,
-    val timestamp: LocalDateTime = LocalDateTime.now()
+    val timestamp: LocalDateTime = LocalDateTime.now(),
+    val isOrbCaptured: Boolean = false // True only after ORB window completes
 ) {
     val buyTrigger: Double get() = high + (breakoutBuffer * instrument.tickSize)
     val sellTrigger: Double get() = low - (breakoutBuffer * instrument.tickSize)
@@ -140,7 +143,7 @@ data class StrategyConfig(
     val instrument: Instrument,
     val orbStartTime: LocalTime = LocalTime.of(9, 15),
     val orbEndTime: LocalTime = LocalTime.of(9, 30),
-    val autoExitTime: LocalTime = LocalTime.of(15, 15),
+    val autoExitTime: LocalTime = LocalTime.of(15, 15), // User configurable - default 15:15 (3:15 PM)
     val noReentryTime: LocalTime = LocalTime.of(15, 0),
     val breakoutBuffer: Int = 2,
     val orderType: OrderType = OrderType.MARKET,
@@ -149,6 +152,7 @@ data class StrategyConfig(
     val trailingStop: Boolean = false,
     val lotSize: Int = 1,
     val maxPositions: Int = 3,
+    val enableAutoExit: Boolean = true, // Enable auto-exit by default (user can disable in config screen)
     val enabled: Boolean = false
 )
 
@@ -205,7 +209,8 @@ data class AppState(
     val activePositions: List<Position> = emptyList(),
     val closedTrades: List<Trade> = emptyList(),
     val logs: List<LogEntry> = emptyList(),
-    val orbLevels: OrbLevels? = null
+    val orbLevels: OrbLevels? = null,
+    val strategyConfig: StrategyConfig? = null
 )
 
 /**

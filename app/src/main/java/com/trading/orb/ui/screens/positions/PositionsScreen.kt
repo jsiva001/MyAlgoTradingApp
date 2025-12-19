@@ -19,42 +19,80 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.trading.orb.data.model.*
 import com.trading.orb.ui.components.*
-import com.trading.orb.ui.event.PositionsUiEvent
 import com.trading.orb.ui.state.PositionUiModel
 import com.trading.orb.ui.theme.*
-import com.trading.orb.ui.utils.LaunchDataLoader
 import com.trading.orb.ui.utils.LaunchEventCollector
-import java.time.LocalDateTime
+import com.trading.orb.ui.utils.ProfitCalculationUtils
+import com.trading.orb.ui.viewmodel.TradingViewModel
+import com.trading.orb.ui.viewmodel.UiEvent
+import timber.log.Timber
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun PositionsScreen(
-    viewModel: PositionsViewModel = hiltViewModel(),
+    tradingViewModel: TradingViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.positionsUiState.collectAsStateWithLifecycle()
+    val appState by tradingViewModel.appState.collectAsStateWithLifecycle()
     
-    LaunchDataLoader(viewModel = viewModel) {
-        viewModel.loadPositions()
-    }
-    
-    LaunchEventCollector(eventFlow = viewModel.uiEvent) { event ->
+    LaunchEventCollector(eventFlow = tradingViewModel.uiEvent) { event ->
         when (event) {
-            is PositionsUiEvent.ShowError -> {}
-            is PositionsUiEvent.ShowSuccess -> {}
-            is PositionsUiEvent.NavigateToPositionDetails -> {}
+            is UiEvent.ShowError -> {
+                Timber.e("❌ Error: ${event.message}")
+            }
+            is UiEvent.ShowSuccess -> {
+                Timber.d("✅ Success: ${event.message}")
+            }
+            else -> {}
         }
     }
     
+    // Transform positions to UI models
+    val positionUiModels = appState.activePositions.map { position ->
+        val pnlAmount = ProfitCalculationUtils.calculatePositionPnL(position)
+        val pnlPercent = ProfitCalculationUtils.calculatePnLPercentage(
+            pnlAmount,
+            position.entryPrice,
+            position.quantity
+        )
+        
+        PositionUiModel(
+            positionId = position.id,
+            symbol = position.instrument.symbol,
+            type = position.side.name,
+            quantity = position.quantity,
+            entryPrice = position.entryPrice,
+            currentPrice = position.currentPrice,
+            profitLoss = pnlAmount,
+            profitLossPercent = pnlPercent,
+            stopLoss = position.stopLoss,
+            takeProfit = position.target,
+            openTime = position.entryTime.format(DateTimeFormatter.ofPattern("HH:mm:ss")),
+            riskLevel = if (pnlAmount >= 0) "LOW" else "MEDIUM"
+        )
+    }
+    
+    // Calculate summary stats
+    val totalProfit = positionUiModels.filter { it.profitLoss > 0 }.sumOf { it.profitLoss }
+    val totalLoss = positionUiModels.filter { it.profitLoss < 0 }.sumOf { it.profitLoss }
+    
     PositionsScreenContent(
-        uiState = uiState,
-        onClosePosition = { positionId -> viewModel.closePosition(positionId) },
+        positions = positionUiModels,
+        totalProfit = totalProfit,
+        totalLoss = totalLoss,
+        onClosePosition = { positionId -> 
+            Timber.d("📍 onClosePosition called with positionId: $positionId")
+            tradingViewModel.closeTradeAtMarketPrice(positionId, ExitReason.MANUAL_EXIT)
+        },
         modifier = modifier
     )
 }
 
 @Composable
 private fun PositionsScreenContent(
-    uiState: PositionsUiState,
+    positions: List<PositionUiModel>,
+    totalProfit: Double,
+    totalLoss: Double,
     onClosePosition: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -62,10 +100,10 @@ private fun PositionsScreenContent(
         modifier = modifier.fillMaxSize()
     ) {
         // Summary Header
-        PositionsSummaryHeader(uiState = uiState)
+        PositionsSummaryHeader(totalProfit = totalProfit, totalLoss = totalLoss)
 
         // Positions List
-        if (uiState.positions.isEmpty()) {
+        if (positions.isEmpty()) {
             EmptyPositionsView()
         } else {
             LazyColumn(
@@ -73,7 +111,7 @@ private fun PositionsScreenContent(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(uiState.positions) { positionUiModel ->
+                items(positions) { positionUiModel ->
                     PositionCard(
                         positionUiModel = positionUiModel,
                         onClose = { onClosePosition(positionUiModel.positionId) }
@@ -85,8 +123,8 @@ private fun PositionsScreenContent(
 }
 
 @Composable
-private fun PositionsSummaryHeader(uiState: PositionsUiState) {
-    val totalPnL = uiState.totalProfit + uiState.totalLoss
+private fun PositionsSummaryHeader(totalProfit: Double, totalLoss: Double) {
+    val totalPnL = totalProfit + totalLoss
 
     OrbCard(
         modifier = Modifier.padding(16.dp)
@@ -234,13 +272,14 @@ private fun PositionCard(
     if (showCloseDialog) {
         AlertDialog(
             onDismissRequest = { showCloseDialog = false },
-            title = { Text("Close Position?") },
+            title = { Text("⚠️ Close Position") },
             text = {
-                Text("Are you sure you want to close this position for ${positionUiModel.symbol}?")
+                Text("Close ${positionUiModel.symbol} position at current market price?\n\nP&L: ${if (positionUiModel.profitLoss >= 0) "+" else ""}₹${String.format("%.0f", positionUiModel.profitLoss)}")
             },
             confirmButton = {
                 TextButton(
                     onClick = {
+                        Timber.d("🔍 Close button clicked for position: ${positionUiModel.positionId}")
                         onClose()
                         showCloseDialog = false
                     }
@@ -344,7 +383,9 @@ private fun EmptyPositionsView() {
 fun PositionsScreenPreview() {
     OrbTradingTheme {
         PositionsScreenContent(
-            uiState = PositionsPreviewProvider.samplePositionsUiState(),
+            positions = listOf(),
+            totalProfit = 0.0,
+            totalLoss = 0.0,
             onClosePosition = {}
         )
     }
@@ -355,7 +396,9 @@ fun PositionsScreenPreview() {
 fun PositionsScreenEmptyPreview() {
     OrbTradingTheme {
         PositionsScreenContent(
-            uiState = PositionsPreviewProvider.samplePositionsUiStateEmpty(),
+            positions = listOf(),
+            totalProfit = 0.0,
+            totalLoss = 0.0,
             onClosePosition = {}
         )
     }
@@ -366,7 +409,9 @@ fun PositionsScreenEmptyPreview() {
 fun PositionsScreenLoadingPreview() {
     OrbTradingTheme {
         PositionsScreenContent(
-            uiState = PositionsPreviewProvider.samplePositionsUiStateLoading(),
+            positions = listOf(),
+            totalProfit = 0.0,
+            totalLoss = 0.0,
             onClosePosition = {}
         )
     }
@@ -377,7 +422,9 @@ fun PositionsScreenLoadingPreview() {
 fun PositionsScreenErrorPreview() {
     OrbTradingTheme {
         PositionsScreenContent(
-            uiState = PositionsPreviewProvider.samplePositionsUiStateError(),
+            positions = listOf(),
+            totalProfit = 0.0,
+            totalLoss = 0.0,
             onClosePosition = {}
         )
     }

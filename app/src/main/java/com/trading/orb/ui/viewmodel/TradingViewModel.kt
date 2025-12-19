@@ -187,24 +187,134 @@ class TradingViewModel @Inject constructor(
             is StrategyEvent.OrbCaptured -> {
                 Timber.i("📈 ORB Captured - High: ${event.levels.high}, Low: ${event.levels.low}")
                 Timber.i("🎯 Buy Trigger: ₹${String.format("%.2f", event.levels.buyTrigger)} | Sell Trigger: ₹${String.format("%.2f", event.levels.sellTrigger)}")
+                
+                repository.updateAppState(
+                    appState.value.copy(orbLevels = event.levels)
+                ).onSuccess {
+                    Timber.d("✅ ORB levels updated in repository")
+                }.onFailure { error ->
+                    Timber.e(error, "Failed to update ORB levels in repository")
+                }
+                
                 _uiEvent.emit(UiEvent.ShowSuccess("ORB Levels Captured! High: ₹${String.format("%.2f", event.levels.high)}, Low: ₹${String.format("%.2f", event.levels.low)}"))
             }
             
             is StrategyEvent.PriceUpdate -> {
-                Timber.i("💹 LTP Price: ₹${String.format("%.2f", event.ltp)}")
+                Timber.d("💹 LTP Update: ₹${String.format("%.2f", event.ltp)}")
+                
+                val currentOrbLevels = appState.value.orbLevels
+                val instrument = appState.value.strategyConfig?.instrument
+                val breakoutBuffer = appState.value.strategyConfig?.breakoutBuffer ?: 0
+                
+                if (currentOrbLevels != null) {
+                    // If ORB is already captured, update the LTP in orbLevels
+                    val updatedOrbLevels = currentOrbLevels.copy(ltp = event.ltp)
+                    repository.updateAppState(
+                        appState.value.copy(orbLevels = updatedOrbLevels)
+                    )
+                } else if (instrument != null) {
+                    // Before ORB capture, create a temporary OrbLevels with only LTP
+                    val tempOrbLevels = OrbLevels(
+                        instrument = instrument,
+                        high = 0.0,
+                        low = 0.0,
+                        ltp = event.ltp,
+                        breakoutBuffer = breakoutBuffer
+                    )
+                    repository.updateAppState(
+                        appState.value.copy(orbLevels = tempOrbLevels)
+                    )
+                }
             }
             
             is StrategyEvent.PositionOpened -> {
                 Timber.i("🟢 Position Opened - Side: ${event.position.side}, Entry Price: ₹${String.format("%.2f", event.position.entryPrice)}, SL: ₹${String.format("%.2f", event.position.stopLoss)}, Target: ₹${String.format("%.2f", event.position.target)}")
+                
+                // Use appState.activePositions as source of truth
+                val updatedPositions = appState.value.activePositions + event.position
+                
+                // Update dailyStats with new position count
+                val updatedDailyStats = appState.value.dailyStats.copy(
+                    activePositions = updatedPositions.size
+                )
+                
+                repository.updateAppState(
+                    appState.value.copy(
+                        activePositions = updatedPositions,
+                        dailyStats = updatedDailyStats
+                    )
+                ).onSuccess {
+                    Timber.d("✅ Position added to repository. Total active positions: ${updatedPositions.size}")
+                }.onFailure { error ->
+                    Timber.e(error, "Failed to update position in repository")
+                }
+                
                 _uiEvent.emit(UiEvent.ShowSuccess("Position opened at ₹${String.format("%.2f", event.position.entryPrice)}"))
             }
             
             is StrategyEvent.PositionUpdate -> {
                 Timber.v("💹 Position Update - Current Price: ₹${String.format("%.2f", event.position.currentPrice)} | P&L: ₹${String.format("%.2f", event.position.currentPrice - event.position.entryPrice)}")
+                
+                // Update active positions with latest position data
+                val updatedPositions = appState.value.activePositions.map { pos ->
+                    if (pos.id == event.position.id) event.position else pos
+                }
+                
+                // Update orbLevels with latest LTP
+                val updatedOrbLevels = appState.value.orbLevels?.copy(ltp = event.position.currentPrice)
+                
+                // Calculate updated P&L for all positions
+                val totalPnl = updatedPositions.sumOf { it.pnl }
+                
+                // Update dailyStats with P&L and active position count
+                val updatedDailyStats = appState.value.dailyStats.copy(
+                    totalPnl = totalPnl,
+                    activePositions = updatedPositions.size
+                )
+                
+                repository.updateAppState(
+                    appState.value.copy(
+                        activePositions = updatedPositions,
+                        orbLevels = updatedOrbLevels,
+                        dailyStats = updatedDailyStats
+                    )
+                )
             }
             
             is StrategyEvent.PositionClosed -> {
                 Timber.i("🏁 Position Closed - Exit Price: ₹${String.format("%.2f", event.trade.exitPrice)}, Reason: ${event.trade.exitReason}, P&L: ₹${String.format("%.2f", event.trade.pnl)}")
+                
+                val updatedPositions = appState.value.activePositions.filter { it.id != event.trade.id }
+                val updatedTrades = trades.value + event.trade
+                
+                // Update daily stats with new active positions count
+                val totalPnl = appState.value.dailyStats.totalPnl + event.trade.pnl
+                val totalTrades = appState.value.dailyStats.totalTrades + 1
+                val winningTrades = appState.value.dailyStats.winningTrades + (if (event.trade.pnl > 0) 1 else 0)
+                val losingTrades = appState.value.dailyStats.losingTrades + (if (event.trade.pnl < 0) 1 else 0)
+                val winRate = if (totalTrades > 0) (winningTrades.toDouble() / totalTrades) * 100 else 0.0
+                
+                val updatedDailyStats = appState.value.dailyStats.copy(
+                    totalPnl = totalPnl,
+                    activePositions = updatedPositions.size,
+                    totalTrades = totalTrades,
+                    winningTrades = winningTrades,
+                    losingTrades = losingTrades,
+                    winRate = winRate
+                )
+                
+                repository.updateAppState(
+                    appState.value.copy(
+                        activePositions = updatedPositions,
+                        closedTrades = updatedTrades,
+                        dailyStats = updatedDailyStats
+                    )
+                ).onSuccess {
+                    Timber.d("✅ Trade closed and updated in repository")
+                }.onFailure { error ->
+                    Timber.e(error, "Failed to update closed trade in repository")
+                }
+                
                 val pnlText = if (event.trade.pnl >= 0) "+₹" else "₹"
                 _uiEvent.emit(UiEvent.ShowSuccess("Trade closed with P&L: $pnlText${String.format("%.0f", event.trade.pnl)}"))
             }
@@ -346,7 +456,26 @@ class TradingViewModel @Inject constructor(
 
     fun toggleTradingMode() {
         viewModelScope.launch {
-            repository.toggleTradingMode().onFailure { error ->
+            Timber.i("🔄 Toggling trading mode...")
+            
+            // First, close all active positions at market price
+            val positionsToClose = appState.value.activePositions.toList()
+            
+            if (positionsToClose.isNotEmpty()) {
+                Timber.i("Closing ${positionsToClose.size} position(s) before mode switch")
+                
+                // Close each position with market order
+                positionsToClose.forEach { position ->
+                    closeTradeAtMarketPrice(position.id, ExitReason.MANUAL_EXIT)
+                }
+            }
+            
+            // Then toggle the trading mode
+            repository.toggleTradingMode().onSuccess {
+                val newMode = if (appState.value.tradingMode == TradingMode.PAPER) "Live" else "Paper"
+                Timber.i("✅ Switched to $newMode mode")
+                _uiEvent.emit(UiEvent.ShowSuccess("Switched to $newMode mode"))
+            }.onFailure { error ->
                 _uiEvent.emit(UiEvent.ShowError(error.message ?: "Failed to toggle mode"))
             }
         }
@@ -355,25 +484,132 @@ class TradingViewModel @Inject constructor(
     fun emergencyStop() {
         viewModelScope.launch {
             Timber.i("🚨 EMERGENCY STOP triggered!")
+            
+            // Close all active positions at market price
+            val positionsToClose = appState.value.activePositions.toList()
+            
+            if (positionsToClose.isEmpty()) {
+                Timber.i("No active positions to close")
+                _uiEvent.emit(UiEvent.ShowSuccess("Emergency stop executed - no active positions"))
+                
+                // Stop strategy engine
+                strategyEngine?.stop()
+                repository.stopStrategy()
+                return@launch
+            }
+
+            // Close each position with market order
+            positionsToClose.forEach { position ->
+                closeTradeAtMarketPrice(position.id, ExitReason.EMERGENCY_EXIT)
+            }
+            
             // Stop strategy engine
             strategyEngine?.stop()
-            
-            // Stop strategy and close all positions
             repository.stopStrategy()
-            repository.closeAllPositions().onSuccess {
-                Timber.i("✅ Emergency stop executed - all positions closed")
-                _uiEvent.emit(UiEvent.ShowSuccess("Emergency stop executed - all positions closed"))
-            }.onFailure { error ->
-                Timber.e("Failed to close positions: ${error.message}")
-                _uiEvent.emit(UiEvent.ShowError(error.message ?: "Emergency stop failed"))
-            }
+            
+            Timber.i("✅ Emergency stop executed - ${positionsToClose.size} position(s) closed")
         }
     }
 
     fun closePosition(positionId: String) {
         viewModelScope.launch {
-            repository.closePosition(positionId).onFailure { error ->
-                _uiEvent.emit(UiEvent.ShowError(error.message ?: "Failed to close position"))
+            // Close with market order (current LTP)
+            closeTradeAtMarketPrice(positionId, ExitReason.MANUAL_EXIT)
+        }
+    }
+
+    /**
+     * Common method to close a trade at current market price
+     * Can be called from any screen in the app
+     * Accessible: Emergency Stop, Close Position, Manual Exit
+     */
+    fun closeTradeAtMarketPrice(positionId: String, reason: ExitReason = ExitReason.MANUAL_EXIT) {
+        viewModelScope.launch {
+            Timber.d("🔍 closeTradeAtMarketPrice called: positionId=$positionId, reason=$reason")
+            Timber.d("📊 Current appState.activePositions count: ${appState.value.activePositions.size}")
+            Timber.d("📊 All active position IDs: ${appState.value.activePositions.map { "${it.id} (${it.instrument.symbol})" }}")
+            try {
+                val position = appState.value.activePositions.find { it.id == positionId }
+                if (position == null) {
+                    Timber.w("❌ Position not found for ID: $positionId")
+                    Timber.d("❌ Current activePositions: ${appState.value.activePositions.map { it.id }}")
+                    _uiEvent.emit(UiEvent.ShowError("Position not found: $positionId"))
+                    return@launch
+                }
+
+                Timber.i("✅ Position FOUND! Symbol: ${position.instrument.symbol}, Current Price: ₹${position.currentPrice}")
+                Timber.i("📍 Closing position ${position.id} at market price: ₹${position.currentPrice} | Reason: $reason")
+
+                // Create trade with current market price as exit price
+                val trade = Trade(
+                    id = position.id,
+                    instrument = position.instrument,
+                    side = position.side,
+                    quantity = position.quantity,
+                    entryPrice = position.entryPrice,
+                    exitPrice = position.currentPrice, // Market order at current LTP
+                    entryTime = position.entryTime,
+                    exitTime = java.time.LocalDateTime.now(),
+                    exitReason = reason,
+                    pnl = position.pnl
+                )
+
+                Timber.i("✅ Trade closed - Exit Price: ₹${String.format("%.2f", trade.exitPrice)}, P&L: ₹${String.format("%.2f", trade.pnl)}, Reason: ${reason.name}")
+
+                // Remove from active positions
+                val updatedPositions = appState.value.activePositions.filter { it.id != positionId }
+                val updatedTrades = appState.value.closedTrades + trade
+                
+                // Update daily stats
+                val totalPnl = appState.value.dailyStats.totalPnl + trade.pnl
+                val totalTrades = appState.value.dailyStats.totalTrades + 1
+                val winningTrades = appState.value.dailyStats.winningTrades + (if (trade.pnl > 0) 1 else 0)
+                val losingTrades = appState.value.dailyStats.losingTrades + (if (trade.pnl < 0) 1 else 0)
+                val winRate = if (totalTrades > 0) (winningTrades.toDouble() / totalTrades) * 100 else 0.0
+                
+                val updatedDailyStats = appState.value.dailyStats.copy(
+                    totalPnl = totalPnl,
+                    activePositions = updatedPositions.size,
+                    totalTrades = totalTrades,
+                    winningTrades = winningTrades,
+                    losingTrades = losingTrades,
+                    winRate = winRate
+                )
+
+                // Update repository with all changes
+                Timber.d("🔄 Updating repository...")
+                Timber.d("   Old positions: ${appState.value.activePositions.size}, New positions: ${updatedPositions.size}")
+                Timber.d("   Old trades: ${appState.value.closedTrades.size}, New trades: ${updatedTrades.size}")
+                Timber.d("   Old active count in stats: ${appState.value.dailyStats.activePositions}, New: ${updatedDailyStats.activePositions}")
+                repository.updateAppState(
+                    appState.value.copy(
+                        activePositions = updatedPositions,
+                        closedTrades = updatedTrades,
+                        dailyStats = updatedDailyStats
+                    )
+                ).onSuccess {
+                    Timber.d("✅ Repository update SUCCESS")
+                    Timber.d("✅ Position closed and updated in repository")
+                    
+                    // Show appropriate message based on reason
+                    val message = when (reason) {
+                        ExitReason.MANUAL_EXIT -> "Position closed manually at ₹${String.format("%.2f", trade.exitPrice)} | P&L: ₹${String.format("%.0f", trade.pnl)}"
+                        ExitReason.TARGET_HIT -> "Target reached! Position closed at ₹${String.format("%.2f", trade.exitPrice)} | P&L: ₹${String.format("%.0f", trade.pnl)}"
+                        ExitReason.SL_HIT -> "Stop Loss hit! Position closed at ₹${String.format("%.2f", trade.exitPrice)} | P&L: ₹${String.format("%.0f", trade.pnl)}"
+                        ExitReason.TIME_EXIT -> "Time exit triggered! Position closed at ₹${String.format("%.2f", trade.exitPrice)} | P&L: ₹${String.format("%.0f", trade.pnl)}"
+                        ExitReason.EMERGENCY_EXIT -> "Emergency stop! Position closed at ₹${String.format("%.2f", trade.exitPrice)} | P&L: ₹${String.format("%.0f", trade.pnl)}"
+                        ExitReason.MANUAL -> "Position closed at ₹${String.format("%.2f", trade.exitPrice)} | P&L: ₹${String.format("%.0f", trade.pnl)}"
+                        ExitReason.CIRCUIT_BREAKER -> "Circuit breaker! Position closed at ₹${String.format("%.2f", trade.exitPrice)} | P&L: ₹${String.format("%.0f", trade.pnl)}"
+                    }
+                    Timber.d("📢 Emitting success event: $message")
+                    _uiEvent.emit(UiEvent.ShowSuccess(message))
+                }.onFailure { error ->
+                    Timber.e(error, "❌ Repository update FAILED")
+                    _uiEvent.emit(UiEvent.ShowError("Failed to close position: ${error.message}"))
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Error closing trade")
+                _uiEvent.emit(UiEvent.ShowError(e.message ?: "Unknown error while closing trade"))
             }
         }
     }

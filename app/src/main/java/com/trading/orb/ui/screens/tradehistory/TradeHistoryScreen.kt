@@ -17,13 +17,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.trading.orb.data.model.OrderSide
+import com.trading.orb.data.model.Trade
 import com.trading.orb.ui.components.*
-import com.trading.orb.ui.event.TradeHistoryUiEvent
 import com.trading.orb.ui.state.TradeHistoryUiModel
 import com.trading.orb.ui.theme.*
-import com.trading.orb.ui.utils.LaunchDataLoader
-import com.trading.orb.ui.utils.LaunchEventCollector
-import java.time.LocalDateTime
+import com.trading.orb.ui.utils.ProfitCalculationUtils
+import com.trading.orb.ui.viewmodel.TradingViewModel
+import timber.log.Timber
+import java.time.format.DateTimeFormatter
 
 enum class HistoryFilter {
     ALL, TODAY, WEEK, MONTH
@@ -31,33 +32,47 @@ enum class HistoryFilter {
 
 @Composable
 fun TradeHistoryScreen(
-    viewModel: TradeHistoryViewModel = hiltViewModel(),
+    tradingViewModel: TradingViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.tradeHistoryUiState.collectAsStateWithLifecycle()
+    val appState by tradingViewModel.appState.collectAsStateWithLifecycle()
     
-    LaunchDataLoader(viewModel = viewModel) {
-        viewModel.loadTradeHistory()
-    }
-    
-    LaunchEventCollector(eventFlow = viewModel.uiEvent) { event ->
-        when (event) {
-            is TradeHistoryUiEvent.ShowError -> {}
-            is TradeHistoryUiEvent.ShowSuccess -> {}
-            is TradeHistoryUiEvent.TradeSelected -> {}
-            is TradeHistoryUiEvent.HistoryExported -> {}
-        }
+    // Transform trades to UI models
+    val tradeUiModels = appState.closedTrades.map { trade ->
+        val pnlAmount = ProfitCalculationUtils.calculateTradePnL(trade)
+        val pnlPercent = ProfitCalculationUtils.calculatePnLPercentage(
+            pnlAmount,
+            trade.entryPrice,
+            trade.quantity
+        )
+        val status = ProfitCalculationUtils.getPnLStatus(pnlAmount)
+        
+        TradeHistoryUiModel(
+            tradeId = trade.id,
+            symbol = trade.instrument.symbol,
+            tradeType = trade.side.name,
+            quantity = trade.quantity,
+            entryPrice = trade.entryPrice,
+            exitPrice = trade.exitPrice,
+            profitLoss = pnlAmount,
+            profitLossPercent = pnlPercent,
+            duration = "${trade.duration}m",
+            status = status,
+            entryTime = trade.entryTime.format(DateTimeFormatter.ofPattern("HH:mm:ss")),
+            exitTime = trade.exitTime.format(DateTimeFormatter.ofPattern("HH:mm:ss")),
+            reason = trade.exitReason.name
+        )
     }
     
     TradeHistoryScreenContent(
-        uiState = uiState,
+        trades = tradeUiModels,
         modifier = modifier
     )
 }
 
 @Composable
 private fun TradeHistoryScreenContent(
-    uiState: TradeHistoryUiState = TradeHistoryUiState(),
+    trades: List<TradeHistoryUiModel> = emptyList(),
     modifier: Modifier = Modifier
 ) {
     var selectedFilter by remember { mutableStateOf(HistoryFilter.TODAY) }
@@ -72,10 +87,10 @@ private fun TradeHistoryScreenContent(
         )
 
         // Statistics summary
-        TradeStatistics(trades = uiState.trades)
+        TradeStatistics(trades = trades)
 
         // Trade list
-        if (uiState.trades.isEmpty()) {
+        if (trades.isEmpty()) {
             EmptyTradesView()
         } else {
             LazyColumn(
@@ -83,7 +98,7 @@ private fun TradeHistoryScreenContent(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(uiState.trades) { trade ->
+                items(trades) { trade ->
                     TradeCard(trade = trade)
                 }
             }
@@ -351,6 +366,6 @@ private fun EmptyTradesView() {
 @Composable
 fun TradeHistoryScreenPreview() {
     OrbTradingTheme {
-        TradeHistoryScreenContent(uiState = TradeHistoryPreviewProvider.sampleTradeHistoryUiState())
+        TradeHistoryScreenContent(trades = emptyList())
     }
 }

@@ -21,8 +21,10 @@ import com.trading.orb.ui.state.ErrorState
 import com.trading.orb.ui.state.LoadingState
 import com.trading.orb.ui.theme.*
 import com.trading.orb.ui.utils.LaunchEventCollector
+import com.trading.orb.ui.utils.ProfitCalculationUtils
 import com.trading.orb.ui.viewmodel.TradingViewModel
 import com.trading.orb.ui.viewmodel.UiEvent
+import timber.log.Timber
 
 @Composable
 fun DashboardScreen(
@@ -87,7 +89,7 @@ private fun DashboardScreenContent(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     // Quick Stats
-                    QuickStatsSection(appState.dailyStats)
+                    QuickStatsSection(appState = appState)
 
                     // Strategy Status
                     StrategyStatusCard(
@@ -95,9 +97,12 @@ private fun DashboardScreenContent(
                         onToggleStrategy = onToggleStrategy
                     )
 
-                    // ORB Levels
-                    if (appState.orbLevels != null) {
-                        OrbLevelsCard(orbLevels = appState.orbLevels)
+                    // ORB Levels Card - Show when strategy is ACTIVE
+                    if (appState.strategyStatus == StrategyStatus.ACTIVE) {
+                        OrbLevelsCard(
+                            orbLevels = appState.orbLevels,
+                            instrument = appState.strategyConfig?.instrument
+                        )
                     }
 
                     // Quick Actions
@@ -113,16 +118,32 @@ private fun DashboardScreenContent(
 }
 
 @Composable
-private fun QuickStatsSection(stats: DailyStats) {
+private fun QuickStatsSection(appState: AppState) {
+    // Calculate today's P&L from both active positions and closed trades
+    // Using same calculation as PositionsScreen and TradeHistoryScreen
+    val activePnL = appState.activePositions.sumOf { it.pnl }
+    val closedTradesPnL = appState.closedTrades.sumOf { it.pnl }
+    val totalTodayPnL = activePnL + closedTradesPnL
+    
+    val stats = appState.dailyStats
+    
+    // Format P&L with proper handling
+    val pnlValue = String.format("%.2f", totalTodayPnL)
+    val pnlText = when {
+        totalTodayPnL > 0 -> "+₹$pnlValue"
+        totalTodayPnL < 0 -> "₹$pnlValue"
+        else -> "+₹$pnlValue"  // 0.00 shown as +₹0.00
+    }
+    val pnlColor = if (totalTodayPnL >= 0) ProfitColor else LossColor
+    
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         StatCard(
-            value = if (stats.totalPnl >= 0) "+₹${String.format("%.0f", stats.totalPnl)}"
-                    else "₹${String.format("%.0f", stats.totalPnl)}",
+            value = pnlText,
             label = "Today's P&L",
-            color = if (stats.totalPnl >= 0) ProfitColor else LossColor,
+            color = pnlColor,
             modifier = Modifier.weight(1f)
         )
 
@@ -220,7 +241,21 @@ private fun StrategyToggleButton(
 }
 
 @Composable
-private fun OrbLevelsCard(orbLevels: OrbLevels) {
+private fun OrbLevelsCard(
+    orbLevels: OrbLevels?,
+    instrument: Instrument?
+) {
+    LaunchedEffect(orbLevels) {
+        when {
+            orbLevels != null -> {
+                Timber.i("📊 UI: ORB Levels displayed - H0: ₹${String.format("%.2f", orbLevels.high)}, L0: ₹${String.format("%.2f", orbLevels.low)}")
+            }
+            else -> {
+                Timber.i("📊 UI: ORB Card showing with instrument and LTP waiting for capture")
+            }
+        }
+    }
+
     OrbCard {
         SectionHeader(
             text = "ORB 15-Min Levels",
@@ -229,14 +264,16 @@ private fun OrbLevelsCard(orbLevels: OrbLevels) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        InfoRow(
-            label = "Instrument:",
-            value = orbLevels.instrument.displayName
-        )
+        // Instrument (always show)
+        if (instrument != null) {
+            InfoRow(
+                label = "Instrument:",
+                value = instrument.displayName
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+        }
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Current LTP
+        // Current LTP (always show when strategy is running)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -247,11 +284,19 @@ private fun OrbLevelsCard(orbLevels: OrbLevels) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary
             )
-            Text(
-                text = "₹${String.format("%.2f", orbLevels.ltp)}",
-                style = MaterialTheme.typography.displaySmall,
-                color = TextPrimary
-            )
+            if (orbLevels != null) {
+                Text(
+                    text = "₹${String.format("%.2f", orbLevels.ltp)}",
+                    style = MaterialTheme.typography.displaySmall,
+                    color = TextPrimary
+                )
+            } else {
+                Text(
+                    text = "Waiting for market data...",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextSecondary
+                )
+            }
         }
 
         Divider(
@@ -259,28 +304,31 @@ private fun OrbLevelsCard(orbLevels: OrbLevels) {
             color = SurfaceVariant
         )
 
-        // High/Low levels
-        InfoRow(
-            label = "H0 (High):",
-            value = "₹${String.format("%.2f", orbLevels.high)}",
-            valueColor = Success
-        )
+        // High/Low levels (show ONLY after ORB window is completed)
+        // Hide during the collection period until orbDurationMinutes window completes
+        if (orbLevels != null && orbLevels.isOrbCaptured) {
+            InfoRow(
+                label = "H0 (High):",
+                value = "₹${String.format("%.2f", orbLevels.high)}",
+                valueColor = Success
+            )
 
-        Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-        InfoRow(
-            label = "L0 (Low):",
-            value = "₹${String.format("%.2f", orbLevels.low)}",
-            valueColor = Error
-        )
+            InfoRow(
+                label = "L0 (Low):",
+                value = "₹${String.format("%.2f", orbLevels.low)}",
+                valueColor = Error
+            )
 
-        Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-        Text(
-            text = "Breakout Buffer: ±${orbLevels.breakoutBuffer} ticks",
-            style = MaterialTheme.typography.labelSmall,
-            color = TextSecondary
-        )
+            Text(
+                text = "Breakout Buffer: ±${orbLevels.breakoutBuffer} ticks",
+                style = MaterialTheme.typography.labelSmall,
+                color = TextSecondary
+            )
+        }
     }
 }
 
@@ -290,12 +338,15 @@ private fun QuickActionsSection(
     onToggleMode: () -> Unit,
     onEmergencyStop: () -> Unit
 ) {
+    var showModeToggleAlert by remember { mutableStateOf(false) }
+    var showEmergencyAlert by remember { mutableStateOf(false) }
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Button(
-            onClick = onToggleMode,
+            onClick = { showModeToggleAlert = true },
             modifier = Modifier
                 .weight(1f)
                 .height(56.dp),
@@ -326,7 +377,7 @@ private fun QuickActionsSection(
         }
 
         Button(
-            onClick = onEmergencyStop,
+            onClick = { showEmergencyAlert = true },
             modifier = Modifier
                 .weight(1f)
                 .height(56.dp),
@@ -345,6 +396,67 @@ private fun QuickActionsSection(
                 style = MaterialTheme.typography.labelLarge
             )
         }
+    }
+
+    // Trading mode toggle confirmation dialog
+    if (showModeToggleAlert) {
+        AlertDialog(
+            onDismissRequest = { showModeToggleAlert = false },
+            title = { Text("⚠️ Switch Trading Mode") },
+            text = {
+                Text(
+                    when (tradingMode) {
+                        TradingMode.PAPER -> "This will close ALL active positions and switch to Live Mode.\n\nAre you sure?"
+                        TradingMode.LIVE -> "This will close ALL active positions and switch to Paper Mode.\n\nAre you sure?"
+                    }
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onToggleMode()
+                        showModeToggleAlert = false
+                    }
+                ) {
+                    Text("Confirm", color = Error)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showModeToggleAlert = false }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Emergency stop confirmation dialog
+    if (showEmergencyAlert) {
+        AlertDialog(
+            onDismissRequest = { showEmergencyAlert = false },
+            title = { Text("⚠️ Emergency Stop") },
+            text = {
+                Text("This will immediately close ALL active positions at current market price.\n\nAre you sure?")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onEmergencyStop()
+                        showEmergencyAlert = false
+                    }
+                ) {
+                    Text("Stop All", color = Error)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showEmergencyAlert = false }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 
@@ -573,6 +685,9 @@ fun com.trading.orb.data.model.AppState.toAppState(): AppState {
         strategyStatus = this.strategyStatus,
         connectionStatus = this.connectionStatus,
         dailyStats = this.dailyStats,
-        orbLevels = this.orbLevels
+        orbLevels = this.orbLevels,
+        strategyConfig = this.strategyConfig,
+        activePositions = this.activePositions,
+        closedTrades = this.closedTrades
     )
 }

@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.trading.orb.data.model.*
@@ -263,6 +264,8 @@ fun ExitReasonBadge(
         ExitReason.SL_HIT -> Triple(Icons.Default.Warning, Error, "SL Hit")
         ExitReason.TIME_EXIT -> Triple(Icons.Default.AccessTime, Primary, "Time Exit")
         ExitReason.MANUAL -> Triple(Icons.Default.TouchApp, Warning, "Manual")
+        ExitReason.MANUAL_EXIT -> Triple(Icons.Default.TouchApp, Warning, "Manual Exit")
+        ExitReason.EMERGENCY_EXIT -> Triple(Icons.Default.PowerSettingsNew, Error, "Emergency Stop")
         ExitReason.CIRCUIT_BREAKER -> Triple(Icons.Default.Block, Error, "Circuit Breaker")
     }
 
@@ -330,23 +333,33 @@ fun StatCard(
     modifier: Modifier = Modifier,
     color: Color = Primary
 ) {
-    OrbCard(modifier = modifier) {
+    OrbCard(modifier = modifier.height(100.dp)) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.fillMaxWidth()
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight()
+                .padding(vertical = 12.dp, horizontal = 8.dp)
         ) {
             Text(
                 text = value,
                 style = MaterialTheme.typography.displayMedium,
                 color = color,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                fontSize = 18.sp
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
                 color = TextSecondary,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                fontSize = 10.sp
             )
         }
     }

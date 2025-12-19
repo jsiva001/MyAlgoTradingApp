@@ -27,5 +27,8 @@ data class AppState(
     val connectionStatus: ConnectionStatus = ConnectionStatus.DISCONNECTED,
     val dailyStats: DailyStats = DailyStats(),
     val orbLevels: OrbLevels? = null,
+    val strategyConfig: StrategyConfig? = null,
+    val activePositions: List<Position> = emptyList(),
+    val closedTrades: List<Trade> = emptyList(),
     val isLoading: Boolean = false
 )

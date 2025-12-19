@@ -34,7 +34,12 @@ class TradingRepositoryImpl @Inject constructor() : TradingRepository {
                 lotSize = 50,
                 tickSize = 0.05,
                 displayName = "NIFTY 22000 CE"
-            )
+            ),
+            // FOR MOCK TESTING: Set ORB window to be 15 minutes from START button click
+            // In real implementation with Angel One API, this will be 9:15-9:30 AM
+            orbStartTime = java.time.LocalTime.of(0, 0), // Start immediately when strategy starts
+            orbEndTime = java.time.LocalTime.of(23, 59), // Keep it open all day for testing
+            autoExitTime = java.time.LocalTime.of(23, 50)
         )
     )
     override val strategyConfig: Flow<StrategyConfig> = _strategyConfig
@@ -46,7 +51,8 @@ class TradingRepositoryImpl @Inject constructor() : TradingRepository {
         return try {
             _appState.value = _appState.value.copy(
                 strategyStatus = StrategyStatus.ACTIVE,
-                connectionStatus = ConnectionStatus.CONNECTED
+                connectionStatus = ConnectionStatus.CONNECTED,
+                strategyConfig = _strategyConfig.value
             )
             Timber.d("Strategy started successfully")
             Result.success(Unit)
@@ -59,7 +65,9 @@ class TradingRepositoryImpl @Inject constructor() : TradingRepository {
     override suspend fun stopStrategy(): Result<Unit> {
         return try {
             _appState.value = _appState.value.copy(
-                strategyStatus = StrategyStatus.INACTIVE
+                strategyStatus = StrategyStatus.INACTIVE,
+                strategyConfig = null,
+                orbLevels = null
             )
             Timber.d("Strategy stopped successfully")
             Result.success(Unit)
@@ -94,17 +102,6 @@ class TradingRepositoryImpl @Inject constructor() : TradingRepository {
             Result.success(Unit)
         } catch (e: Exception) {
             Timber.e(e, "Failed to pause strategy")
-            Result.failure(e)
-        }
-    }
-
-    override suspend fun closePosition(positionId: String): Result<Unit> {
-        return try {
-            _positions.value = _positions.value.filter { it.id != positionId }
-            Timber.d("Position closed: $positionId")
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to close position: $positionId")
             Result.failure(e)
         }
     }
@@ -145,7 +142,11 @@ class TradingRepositoryImpl @Inject constructor() : TradingRepository {
     override suspend fun updateAppState(state: AppState): Result<Unit> {
         return try {
             _appState.value = state
-            Timber.d("App state updated")
+            // Also update _positions to keep it in sync with AppState
+            _positions.value = state.activePositions
+            // Also update _trades with closed trades for history screen
+            _trades.value = state.closedTrades
+            Timber.d("App state updated with ${state.activePositions.size} active positions and ${state.closedTrades.size} closed trades")
             Result.success(Unit)
         } catch (e: Exception) {
             Timber.e(e, "Failed to update app state")

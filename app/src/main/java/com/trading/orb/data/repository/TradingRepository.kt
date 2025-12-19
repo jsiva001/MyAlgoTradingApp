@@ -18,8 +18,7 @@ interface TradingRepository {
     suspend fun toggleTradingMode(): Result<Unit>
     suspend fun pauseStrategy(): Result<Unit>
 
-    // Position operations
-    suspend fun closePosition(positionId: String): Result<Unit>
+    // Close all positions at once
     suspend fun closeAllPositions(): Result<Unit>
 
     // Configuration operations
