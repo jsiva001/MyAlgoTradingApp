@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.trading.orb.data.model.*
 import com.trading.orb.ui.theme.*
+import com.trading.orb.ui.utils.*
 import java.time.format.DateTimeFormatter
 
 /**
@@ -36,10 +37,10 @@ fun OrbCard(
         colors = CardDefaults.cardColors(
             containerColor = Surface
         ),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(CORNER_RADIUS_LARGE)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(PADDING_STANDARD),
             content = content
         )
     }
@@ -57,14 +58,14 @@ fun SectionHeader(
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(PADDING_SMALL)
     ) {
         if (icon != null) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = Primary,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(ICON_SIZE_MEDIUM)
             )
         }
         Text(
@@ -87,9 +88,9 @@ fun StatusBadge(
 ) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(CORNER_RADIUS_LARGE))
             .background(color)
-            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .padding(horizontal = PADDING_MEDIUM, vertical = PADDING_EXTRA_SMALL)
     ) {
         Text(
             text = text,
@@ -186,19 +187,19 @@ fun OrderSideBadge(
 
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(CORNER_RADIUS_MEDIUM))
             .background(color)
-            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .padding(horizontal = PADDING_MEDIUM, vertical = PADDING_EXTRA_SMALL)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(PADDING_EXTRA_SMALL)
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = Color.White,
-                modifier = Modifier.size(12.dp)
+                modifier = Modifier.size(ICON_SIZE_SMALL)
             )
             Text(
                 text = side.name,
@@ -238,13 +239,13 @@ fun LabeledProgressBar(
                 fontWeight = FontWeight.Bold
             )
         }
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(PADDING_EXTRA_SMALL))
         LinearProgressIndicator(
-            progress = (current / max).toFloat().coerceIn(0f, 1f),
+            progress = { (current / max).toFloat().coerceIn(0f, 1f) },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(8.dp)
-                .clip(RoundedCornerShape(4.dp)),
+                .height(PADDING_SMALL)
+                .clip(RoundedCornerShape(CORNER_RADIUS_SMALL)),
             color = color,
             trackColor = SurfaceVariant
         )
@@ -271,19 +272,19 @@ fun ExitReasonBadge(
 
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(CORNER_RADIUS_MEDIUM))
             .background(SurfaceVariant)
-            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .padding(horizontal = PADDING_SMALL, vertical = PADDING_EXTRA_SMALL)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(PADDING_EXTRA_SMALL)
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = color,
-                modifier = Modifier.size(12.dp)
+                modifier = Modifier.size(ICON_SIZE_SMALL)
             )
             Text(
                 text = text,
@@ -340,7 +341,7 @@ fun StatCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight()
-                .padding(vertical = 12.dp, horizontal = 8.dp)
+                .padding(vertical = PADDING_MEDIUM, horizontal = PADDING_SMALL)
         ) {
             Text(
                 text = value,
@@ -351,7 +352,7 @@ fun StatCard(
                 overflow = TextOverflow.Ellipsis,
                 fontSize = 18.sp
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(PADDING_EXTRA_SMALL))
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
@@ -526,8 +527,7 @@ fun TimerInputField(
 fun TimeField(
     value: String,
     label: String,
-    modifier: Modifier = Modifier,
-    onTimeChange: (String) -> Unit = { }
+    modifier: Modifier = Modifier
 ) {
     OutlinedTextField(
         value = value,
