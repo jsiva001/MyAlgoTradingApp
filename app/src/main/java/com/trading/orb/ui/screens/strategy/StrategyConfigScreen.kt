@@ -340,7 +340,7 @@ private fun EntryParametersSection(
     onConfigChange: (StrategyConfig) -> Unit
 ) {
     ConfigSection(Labels.ENTRY_PARAMETERS) {
-        NumberFieldWithDialogLocal(
+        NumberFieldWithDialog(
             value = config.breakoutBuffer,
             label = Labels.BREAKOUT_BUFFER_LABEL,
             onValueChange = { newValue ->
@@ -572,7 +572,7 @@ private fun <T> updateIfValid(
 }
 
 @Composable
-private fun NumberFieldWithDialogLocal(
+private fun NumberFieldWithDialog(
     value: Int,
     label: String,
     onValueChange: (Int) -> Unit = {},
