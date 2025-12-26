@@ -86,8 +86,8 @@ class TradingViewModel @Inject constructor(
     // 🆕 ADD: Check if market is open
     private fun isMarketOpen(): Boolean {
         val now = LocalTime.now()
-        val marketOpen = LocalTime.of(9, 15)
-        val marketClose = LocalTime.of(15, 30)
+        val marketOpen = LocalTime.of(9, 15)  // ORB_START_TIME
+        val marketClose = LocalTime.of(15, 30) // Market close time
         return now in marketOpen..marketClose
     }
 

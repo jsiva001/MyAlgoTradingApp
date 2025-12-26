@@ -17,8 +17,14 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.trading.orb.data.model.TradingMode
 import com.trading.orb.ui.theme.*
+import com.trading.orb.ui.utils.CORNER_RADIUS_LARGE
+import com.trading.orb.ui.utils.CORNER_RADIUS_MEDIUM
+import com.trading.orb.ui.utils.ICON_SIZE_LARGE
+import com.trading.orb.ui.utils.PADDING_EXTRA_SMALL
+import com.trading.orb.ui.utils.TEXT_SIZE_HEADING
+import com.trading.orb.ui.utils.TEXT_SIZE_SMALL
+import com.trading.orb.ui.utils.TimePickerDialog
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
@@ -93,7 +99,7 @@ fun TimerDisplay(
 
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(CORNER_RADIUS_LARGE))
             .background(backgroundColor)
             .padding(12.dp),
         contentAlignment = Alignment.Center
@@ -104,7 +110,7 @@ fun TimerDisplay(
             color = textColor,
             fontWeight = FontWeight.Bold,
             fontFamily = FontFamily.Monospace,
-            fontSize = 28.sp
+            fontSize = TEXT_SIZE_HEADING
         )
     }
 }
@@ -129,10 +135,10 @@ fun SimpleTimer(
             text = label,
             style = MaterialTheme.typography.labelSmall,
             color = TextSecondary,
-            fontSize = 11.sp
+            fontSize = TEXT_SIZE_SMALL
         )
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(PADDING_EXTRA_SMALL))
 
         val displaySeconds = seconds / 60
         val displayMinutes = displaySeconds / 60
@@ -158,10 +164,9 @@ fun SimpleTimer(
 
 @Composable
 fun TradingHoursTimer(
-    startTime: LocalTime = LocalTime.of(9, 15),
-    endTime: LocalTime = LocalTime.of(15, 30),
-    modifier: Modifier = Modifier,
-    tradingMode: TradingMode = TradingMode.PAPER
+    startTime: LocalTime = LocalTime.of(9, 15),  // ORB_START_TIME
+    endTime: LocalTime = LocalTime.of(15, 30),   // Market close time
+    modifier: Modifier = Modifier
 ) {
     var remainingSeconds by remember { mutableLongStateOf(0L) }
     var isTradingActive by remember { mutableStateOf(false) }
@@ -190,7 +195,7 @@ fun TradingHoursTimer(
 
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(CORNER_RADIUS_LARGE))
             .background(if (isTradingActive) Success.copy(alpha = 0.1f) else Error.copy(alpha = 0.1f))
             .padding(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -202,7 +207,7 @@ fun TradingHoursTimer(
             fontWeight = FontWeight.Bold
         )
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(PADDING_EXTRA_SMALL))
 
         Text(
             text = if (isTradingActive) {
@@ -236,7 +241,7 @@ fun TimeInputField(
         OutlinedTextField(
             value = value.format(DateTimeFormatter.ofPattern("HH:mm")),
             onValueChange = {},
-            label = { Text(label, fontSize = 12.sp) },
+            label = { Text(label, fontSize = TEXT_SIZE_SMALL) },
             readOnly = true,
             enabled = enabled,
             modifier = Modifier
@@ -271,153 +276,113 @@ fun TimeInputField(
     }
 }
 
-/**
- * Custom time picker dialog
- */
-@Composable
-fun TimePickerDialog(
-    initialTime: LocalTime = LocalTime.now(),
-    onTimeSelected: (LocalTime) -> Unit = {},
-    onDismiss: () -> Unit = {}
-) {
-    var selectedHour by remember { mutableIntStateOf(initialTime.hour) }
-    var selectedMinute by remember { mutableIntStateOf(initialTime.minute) }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text("Select Time", fontWeight = FontWeight.Bold)
-        },
-        text = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Hour picker
-                    TimeSpinner(
-                        value = selectedHour,
-                        range = 0..23,
-                        onValueChange = { selectedHour = it },
-                        label = "Hour"
-                    )
 
-                    Text(
-                        text = ":",
-                        style = MaterialTheme.typography.displaySmall,
-                        modifier = Modifier.padding(horizontal = 8.dp),
-                        fontWeight = FontWeight.Bold
-                    )
 
-                    // Minute picker
-                    TimeSpinner(
-                        value = selectedMinute,
-                        range = 0..59,
-                        step = 5,
-                        onValueChange = { selectedMinute = it },
-                        label = "Min"
-                    )
-                }
 
-                // Display preview
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Primary.copy(alpha = 0.1f))
-                        .padding(12.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = String.format("%02d:%02d", selectedHour, selectedMinute),
-                        style = MaterialTheme.typography.displaySmall,
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Bold,
-                        color = Primary
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    onTimeSelected(LocalTime.of(selectedHour, selectedMinute))
-                }
-            ) {
-                Text("OK")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        },
-        containerColor = Surface
-    )
-}
+
+
+
 
 /**
- * Time value spinner component
+ * Number spinner component for selecting values in a range (e.g., 1-10)
+ * Used for fields like Breakout Buffer
  */
 @Composable
-private fun TimeSpinner(
+fun NumberSpinner(
     value: Int,
-    range: IntRange,
-    step: Int = 1,
+    range: IntRange = 1..10,
     onValueChange: (Int) -> Unit,
-    label: String
+    label: String,
+    modifier: Modifier = Modifier
 ) {
     Column(
-        horizontalAlignment = Alignment.CenterHorizontally
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        IconButton(
-            onClick = { onValueChange(((value + step - range.first) % (range.last - range.first + 1)) + range.first) }
-        ) {
-            Icon(
-                imageVector = Icons.Default.KeyboardArrowUp,
-                contentDescription = "Increase",
-                tint = Primary
-            )
-        }
-
-        Box(
-            modifier = Modifier
-                .width(60.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(SurfaceVariant)
-                .padding(vertical = 8.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = String.format("%02d", value),
-                style = MaterialTheme.typography.headlineSmall,
-                fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimary
-            )
-        }
-
-        IconButton(
-            onClick = { onValueChange(((value - step - range.first) % (range.last - range.first + 1)) + range.first) }
-        ) {
-            Icon(
-                imageVector = Icons.Default.KeyboardArrowDown,
-                contentDescription = "Decrease",
-                tint = Primary
-            )
-        }
-
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = TextSecondary,
-            fontSize = 10.sp
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+            content = {
+                // Minus Button
+                IconButton(
+                    onClick = {
+                        val newValue = value - 1
+                        if (newValue >= range.first) {
+                            onValueChange(newValue)
+                        }
+                    },
+                    enabled = value > range.first,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowDown,
+                        contentDescription = "Decrease",
+                        tint = if (value > range.first) Primary else Primary.copy(alpha = 0.3f),
+                        modifier = Modifier.size(ICON_SIZE_LARGE)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                // Value Display
+                Box(
+                    modifier = Modifier
+                        .width(80.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .padding(vertical = 12.dp, horizontal = 16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = value.toString(),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                // Plus Button
+                IconButton(
+                    onClick = {
+                        val newValue = value + 1
+                        if (newValue <= range.last) {
+                            onValueChange(newValue)
+                        }
+                    },
+                    enabled = value < range.last,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowUp,
+                        contentDescription = "Increase",
+                        tint = if (value < range.last) Primary else Primary.copy(alpha = 0.3f),
+                        modifier = Modifier.size(ICON_SIZE_LARGE)
+                    )
+                }
+            }
+        )
+
+        // Range info
+        Text(
+            text = "Range: ${range.first} - ${range.last}",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 8.dp)
         )
     }
 }
+
+

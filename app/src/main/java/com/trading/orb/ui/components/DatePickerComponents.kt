@@ -22,6 +22,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.trading.orb.ui.theme.*
+import com.trading.orb.ui.utils.CORNER_RADIUS_MEDIUM
+import com.trading.orb.ui.utils.TEXT_SIZE_SMALL
+import com.trading.orb.ui.utils.PADDING_EXTRA_SMALL
+import com.trading.orb.ui.utils.PADDING_SMALL
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -60,7 +64,7 @@ fun DateRangePicker(
             )
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(PADDING_SMALL))
 
         Button(
             onClick = { 
@@ -94,7 +98,7 @@ fun DateInputField(
         OutlinedTextField(
             value = value.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
             onValueChange = {},
-            label = { Text(label, fontSize = 12.sp) },
+            label = { Text(label, fontSize = TEXT_SIZE_SMALL) },
             readOnly = true,
             enabled = enabled,
             modifier = Modifier
@@ -178,7 +182,7 @@ fun CalendarPickerDialog(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(CORNER_RADIUS_MEDIUM))
                         .background(Primary.copy(alpha = 0.1f))
                         .padding(8.dp),
                     contentAlignment = Alignment.Center
@@ -293,7 +297,7 @@ private fun CalendarGrid(
                     modifier = Modifier
                         .weight(1f)
                         .padding(4.dp),
-                    fontSize = 10.sp
+                    fontSize = TEXT_SIZE_SMALL
                 )
             }
         }
@@ -302,8 +306,8 @@ private fun CalendarGrid(
         LazyVerticalGrid(
             columns = GridCells.Fixed(7),
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(PADDING_EXTRA_SMALL),
+            verticalArrangement = Arrangement.spacedBy(PADDING_EXTRA_SMALL)
         ) {
             items(dayList.size) { index ->
                 val date = dayList[index]
@@ -378,7 +382,7 @@ fun QuickDateRangeSelector(
             fontWeight = FontWeight.Bold
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(PADDING_SMALL))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -409,7 +413,7 @@ fun QuickDateRangeSelector(
             )
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(PADDING_SMALL))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -468,7 +472,7 @@ private fun QuickDateButton(
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.SemiBold,
             color = TextPrimary,
-            fontSize = 10.sp
+            fontSize = TEXT_SIZE_SMALL
         )
     }
 }

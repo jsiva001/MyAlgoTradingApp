@@ -1,10 +1,10 @@
 package com.trading.orb.ui.screens.dashboard
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.trading.orb.ui.utils.*
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.trading.orb.data.model.*
@@ -21,7 +22,6 @@ import com.trading.orb.ui.state.ErrorState
 import com.trading.orb.ui.state.LoadingState
 import com.trading.orb.ui.theme.*
 import com.trading.orb.ui.utils.LaunchEventCollector
-import com.trading.orb.ui.utils.ProfitCalculationUtils
 import com.trading.orb.ui.viewmodel.TradingViewModel
 import com.trading.orb.ui.viewmodel.UiEvent
 import timber.log.Timber
@@ -85,8 +85,8 @@ private fun DashboardScreenContent(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                        .padding(PADDING_STANDARD),
+                    verticalArrangement = Arrangement.spacedBy(PADDING_LARGE)
                 ) {
                     // Quick Stats
                     QuickStatsSection(appState = appState)
@@ -138,7 +138,7 @@ private fun QuickStatsSection(appState: AppState) {
     
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(PADDING_MEDIUM)
     ) {
         StatCard(
             value = pnlText,
@@ -180,7 +180,7 @@ private fun StrategyStatusCard(
                     style = MaterialTheme.typography.headlineLarge,
                     color = TextPrimary
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(PADDING_SMALL))
                 StatusIndicator(status = status)
             }
 
@@ -225,14 +225,14 @@ private fun StrategyToggleButton(
         colors = ButtonDefaults.buttonColors(
             containerColor = color
         ),
-        modifier = Modifier.height(48.dp)
+        modifier = Modifier.height(BUTTON_HEIGHT)
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            modifier = Modifier.size(20.dp)
+            modifier = Modifier.size(ICON_SIZE_MEDIUM)
         )
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(PADDING_SMALL))
         Text(
             text = text,
             style = MaterialTheme.typography.labelLarge
@@ -262,7 +262,7 @@ private fun OrbLevelsCard(
             icon = Icons.Default.Timeline
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(PADDING_LARGE))
 
         // Instrument (always show)
         if (instrument != null) {
@@ -270,7 +270,7 @@ private fun OrbLevelsCard(
                 label = "Instrument:",
                 value = instrument.displayName
             )
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(PADDING_MEDIUM))
         }
 
         // Current LTP (always show when strategy is running)
@@ -299,7 +299,7 @@ private fun OrbLevelsCard(
             }
         }
 
-        Divider(
+        HorizontalDivider(
             modifier = Modifier.padding(vertical = 12.dp),
             color = SurfaceVariant
         )
@@ -313,7 +313,7 @@ private fun OrbLevelsCard(
                 valueColor = Success
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(PADDING_SMALL))
 
             InfoRow(
                 label = "L0 (Low):",
@@ -321,7 +321,7 @@ private fun OrbLevelsCard(
                 valueColor = Error
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(PADDING_MEDIUM))
 
             Text(
                 text = "Breakout Buffer: ±${orbLevels.breakoutBuffer} ticks",
@@ -343,13 +343,13 @@ private fun QuickActionsSection(
 
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(PADDING_MEDIUM)
     ) {
         Button(
             onClick = { showModeToggleAlert = true },
             modifier = Modifier
                 .weight(1f)
-                .height(56.dp),
+                .height(TEXT_FIELD_HEIGHT),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary
             )
@@ -357,12 +357,12 @@ private fun QuickActionsSection(
             Icon(
                 imageVector = when (tradingMode) {
                     TradingMode.PAPER -> Icons.Default.Shield
-                    TradingMode.LIVE -> Icons.Default.TrendingUp
+                    TradingMode.LIVE -> Icons.AutoMirrored.Default.TrendingUp
                 },
                 contentDescription = null,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(ICON_SIZE_MEDIUM)
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(PADDING_SMALL))
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -380,7 +380,7 @@ private fun QuickActionsSection(
             onClick = { showEmergencyAlert = true },
             modifier = Modifier
                 .weight(1f)
-                .height(56.dp),
+                .height(TEXT_FIELD_HEIGHT),
             colors = ButtonDefaults.buttonColors(
                 containerColor = Error
             )
@@ -388,9 +388,9 @@ private fun QuickActionsSection(
             Icon(
                 imageVector = Icons.Default.PowerSettingsNew,
                 contentDescription = null,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(ICON_SIZE_MEDIUM)
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(PADDING_SMALL))
             Text(
                 text = "Emergency",
                 style = MaterialTheme.typography.labelLarge
@@ -471,14 +471,14 @@ private fun DashboardLoadingScreen(message: String = "Loading dashboard...") {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(PADDING_STANDARD)
         ) {
             CircularProgressIndicator(
-                modifier = Modifier.size(48.dp),
+                modifier = Modifier.size(ICON_SIZE_EXTRA_LARGE),
                 color = Primary,
-                strokeWidth = 4.dp
+                strokeWidth = DIVIDER_THICKNESS
             )
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(PADDING_LARGE))
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyMedium,
@@ -501,7 +501,7 @@ private fun DashboardErrorScreen(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(PADDING_STANDARD)
         ) {
             Icon(
                 imageVector = Icons.Default.Error,
@@ -509,14 +509,14 @@ private fun DashboardErrorScreen(
                 modifier = Modifier.size(64.dp),
                 tint = Error
             )
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(PADDING_LARGE))
             Text(
                 text = "Error Loading Dashboard",
                 style = MaterialTheme.typography.headlineSmall,
                 color = TextPrimary,
                 textAlign = TextAlign.Center
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(PADDING_SMALL))
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyMedium,
@@ -524,17 +524,17 @@ private fun DashboardErrorScreen(
                 textAlign = TextAlign.Center
             )
             if (isRetryable) {
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(PADDING_EXTRA_LARGE))
                 Button(
                     onClick = onRetry,
-                    modifier = Modifier.height(48.dp)
+                    modifier = Modifier.height(BUTTON_HEIGHT)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Refresh,
                         contentDescription = null,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(ICON_SIZE_MEDIUM)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(PADDING_SMALL))
                     Text("Retry")
                 }
             }

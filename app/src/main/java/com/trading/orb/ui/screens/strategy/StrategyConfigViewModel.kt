@@ -94,6 +94,9 @@ class StrategyConfigViewModel @Inject constructor(
                         selectedStrategy = "ORB",
                         riskPercentage = config.targetPoints.toFloat() / 100f,
                         maxPositions = config.maxPositions,
+                        targetPoints = config.targetPoints,
+                        stopLossPoints = config.stopLossPoints,
+                        lotSize = config.lotSize,
                         loading = LoadingState(isLoading = false)
                     )
                 }
@@ -136,11 +139,31 @@ class StrategyConfigViewModel @Inject constructor(
     }
 
     /**
-     * Update maximum positions
+     * Update target points
      */
-    fun updateMaxPositions(maxPositions: Int) {
+    fun updateTargetPoints(targetPoints: Double) {
         _strategyConfigUiState.update {
-            it.copy(maxPositions = maxPositions)
+            it.copy(targetPoints = targetPoints)
+        }
+    }
+
+    /**
+     * Update stop loss points
+     */
+    fun updateStopLossPoints(stopLossPoints: Double) {
+        _strategyConfigUiState.update {
+            it.copy(stopLossPoints = stopLossPoints)
+        }
+    }
+
+    /**
+     * Update lot size (affects total quantity: lot size * 75)
+     */
+    fun updateLotSize(lotSize: Int) {
+        if (lotSize > 0) {
+            _strategyConfigUiState.update {
+                it.copy(lotSize = lotSize)
+            }
         }
     }
 
@@ -172,7 +195,9 @@ class StrategyConfigViewModel @Inject constructor(
                 val updatedConfig = strategyConfig.value.copy(
                     name = _strategyConfigUiState.value.strategyName,
                     maxPositions = _strategyConfigUiState.value.maxPositions,
-                    targetPoints = _strategyConfigUiState.value.riskPercentage.toDouble() * 100
+                    targetPoints = _strategyConfigUiState.value.targetPoints,
+                    stopLossPoints = _strategyConfigUiState.value.stopLossPoints,
+                    lotSize = _strategyConfigUiState.value.lotSize
                 )
 
                 repository.updateStrategyConfig(updatedConfig).onSuccess {

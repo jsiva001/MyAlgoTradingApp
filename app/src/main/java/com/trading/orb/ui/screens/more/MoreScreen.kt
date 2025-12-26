@@ -12,7 +12,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import com.trading.orb.ui.utils.*
 import androidx.navigation.NavController
 import com.trading.orb.ui.components.*
 import com.trading.orb.ui.event.MoreUiEvent
@@ -20,6 +20,7 @@ import com.trading.orb.ui.theme.*
 import androidx.compose.ui.tooling.preview.Preview
 import com.trading.orb.ui.navigation.Screen
 import com.trading.orb.ui.utils.LaunchEventCollector
+import com.trading.orb.ui.utils.*
 
 @Composable
 fun MoreScreen(
@@ -56,8 +57,8 @@ private fun MoreScreenContent(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(PADDING_STANDARD),
+        verticalArrangement = Arrangement.spacedBy(PADDING_MEDIUM)
     ) {
         // Features Section
         Text(
@@ -98,7 +99,7 @@ private fun MoreScreenContent(
             onClick = { /* Navigate to notifications */ }
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(PADDING_SMALL))
 
         // Settings Section
         Text(
@@ -123,7 +124,7 @@ private fun MoreScreenContent(
             onClick = { /* Navigate to security */ }
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(PADDING_SMALL))
 
         // Broker Section
         Text(
@@ -138,7 +139,7 @@ private fun MoreScreenContent(
             onDisconnect = { }
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(PADDING_SMALL))
 
         // About Section
         MenuCard(
@@ -169,14 +170,14 @@ private fun MenuCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(PADDING_LARGE),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
                     tint = iconTint,
-                    modifier = Modifier.size(28.dp)
+                    modifier = Modifier.size(ICON_SIZE_LARGE)
                 )
                 Column {
                     Text(
@@ -213,14 +214,14 @@ private fun BrokerCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(PADDING_LARGE),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
                     imageVector = Icons.Default.CheckCircle,
                     contentDescription = null,
                     tint = if (isConnected) Success else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(28.dp)
+                    modifier = Modifier.size(ICON_SIZE_LARGE)
                 )
                 Column {
                     Text(

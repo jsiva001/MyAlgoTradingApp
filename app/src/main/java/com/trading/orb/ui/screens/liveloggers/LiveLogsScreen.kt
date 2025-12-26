@@ -17,11 +17,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.trading.orb.ui.utils.*
 import com.trading.orb.ui.components.TimeFormatter
+import com.trading.orb.ui.utils.*
 import com.trading.orb.ui.event.LiveLogsUiEvent
+import com.trading.orb.ui.utils.*
 import com.trading.orb.ui.state.LogEntryUiModel
+import com.trading.orb.ui.utils.*
 import com.trading.orb.ui.theme.*
+import com.trading.orb.ui.utils.*
 import com.trading.orb.ui.utils.LaunchEventCollector
+import com.trading.orb.ui.utils.*
 import java.time.LocalDateTime
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -112,13 +118,13 @@ private fun LiveLogsScreenContent(
             }
         }
 
-        Divider(color = MaterialTheme.colorScheme.surfaceVariant)
+        HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
 
         // Logs list
         LazyColumn(
             state = listState,
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
+            contentPadding = PaddingValues(PADDING_STANDARD),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             items(uiState.logs) { log ->
@@ -141,7 +147,7 @@ private fun LogEntryItem(log: LogEntryUiModel) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(CORNER_RADIUS_MEDIUM))
             .background(MaterialTheme.colorScheme.surface)
             .padding(12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)

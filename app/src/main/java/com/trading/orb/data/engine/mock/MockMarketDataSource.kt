@@ -67,7 +67,7 @@ class MockMarketDataSource(
 
     override suspend fun isMarketOpen(): Boolean {
         val now = LocalTime.now()
-        return now in LocalTime.of(9, 15)..LocalTime.of(15, 30)
+        return now in LocalTime.of(9, 15)..LocalTime.of(15, 30)  // ORB_START_TIME to market close
     }
 
     fun setPrice(price: Double) {

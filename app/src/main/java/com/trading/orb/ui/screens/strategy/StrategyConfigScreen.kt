@@ -6,22 +6,32 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.focus.onFocusChanged
+import com.trading.orb.ui.utils.*
 import com.trading.orb.data.model.*
 import com.trading.orb.ui.components.*
 import com.trading.orb.ui.event.StrategyConfigUiEvent
 import com.trading.orb.ui.theme.*
-import com.trading.orb.ui.utils.LaunchEventCollector
 import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+import com.trading.orb.ui.utils.TimePickerDialog
+import com.trading.orb.ui.utils.TimePickerDialogAMPM
+import com.trading.orb.ui.utils.NumberPickerDialog
+import com.trading.orb.ui.utils.ShowValidationDialog
 
 @Composable
 fun StrategyConfigScreen(
@@ -47,58 +57,107 @@ fun StrategyConfigScreen(
 
 @Composable
 private fun StrategyConfigScreenContent(
-    uiState: StrategyConfigUiState = StrategyConfigUiState(),
+    uiState: StrategyConfigUiState,
     onSaveConfig: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var editedConfig by remember { mutableStateOf(StrategyConfig(instrument = Instrument(symbol = "", exchange = "", lotSize = 0, tickSize = 0.0))) }
+    var showValidationAlert by remember { mutableStateOf(false) }
+    var alertMessage by remember { mutableStateOf("") }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+    Box(
+        modifier = modifier.fillMaxSize()
     ) {
-        InstrumentSection(
-            instrument = editedConfig.instrument,
-            onInstrumentChange = { editedConfig = editedConfig.copy(instrument = it) }
-        )
-        TimeSettingsSection(config = editedConfig) { editedConfig = it }
-        EntryParametersSection(config = editedConfig) { editedConfig = it }
-        ExitRulesSection(config = editedConfig) { editedConfig = it }
-        PositionSizingSection(config = editedConfig) { editedConfig = it }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(PADDING_STANDARD)
+                .padding(bottom = SAVE_BUTTON_HEIGHT),
+            verticalArrangement = Arrangement.spacedBy(PADDING_EXTRA_LARGE)
+        ) {
+            InstrumentSection(
+                instrument = editedConfig.instrument
+            )
+            TimeSettingsSection(config = editedConfig) { editedConfig = it }
+            EntryParametersSection(config = editedConfig) { editedConfig = it }
+            ExitRulesSection(config = editedConfig) { editedConfig = it }
+            PositionSizingSection(config = editedConfig) { editedConfig = it }
+        }
 
-        SaveButton {
-            onSaveConfig()
+        SaveButton(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth(),
+            onClick = {
+                val targetIsZero = editedConfig.targetPoints == 0.0
+                val stopLossIsZero = editedConfig.stopLossPoints == 0.0
+                val lotSizeInvalid = editedConfig.lotSize < MIN_LOT_SIZE || editedConfig.lotSize > MAX_LOT_SIZE
+                val maxPositionsInvalid = editedConfig.maxPositions < MIN_MAX_POSITION || editedConfig.maxPositions > MAX_MAX_POSITION
+
+                if (targetIsZero || stopLossIsZero || lotSizeInvalid || maxPositionsInvalid) {
+                    showValidationAlert = true
+                    alertMessage = buildValidationMessage(
+                        targetIsZero = targetIsZero,
+                        stopLossIsZero = stopLossIsZero,
+                        lotSizeInvalid = lotSizeInvalid,
+                        maxPositionsInvalid = maxPositionsInvalid
+                    )
+                    
+                    editedConfig = editedConfig.copy(
+                        targetPoints = if (targetIsZero) DEFAULT_TARGET_POINTS.toDouble() else editedConfig.targetPoints,
+                        stopLossPoints = if (stopLossIsZero) DEFAULT_STOP_LOSS_POINTS.toDouble() else editedConfig.stopLossPoints,
+                        lotSize = if (lotSizeInvalid) DEFAULT_LOT_SIZE else editedConfig.lotSize,
+                        maxPositions = if (maxPositionsInvalid) DEFAULT_MAX_POSITION else editedConfig.maxPositions
+                    )
+                } else {
+                    onSaveConfig()
+                }
+            }
+        )
+    }
+
+    if (showValidationAlert) {
+        ShowValidationDialog(
+            message = alertMessage,
+            onDismiss = { showValidationAlert = false }
+        )
+    }
+}
+
+@Composable
+private fun SaveButton(
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(PADDING_STANDARD)
+    ) {
+        Button(
+            onClick = onClick,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+        ) {
+            Text(Labels.SAVE_CONFIGURATION, style = MaterialTheme.typography.labelLarge)
         }
     }
 }
 
 @Composable
-private fun SaveButton(onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-    ) {
-        Text("Save Configuration", style = MaterialTheme.typography.labelLarge)
-    }
-}
-
-@Composable
 private fun InstrumentSection(
-    instrument: Instrument,
-    onInstrumentChange: (Instrument) -> Unit
+    instrument: Instrument
 ) {
     OrbCard {
-        SectionHeader(text = "Instrument")
-        Spacer(modifier = Modifier.height(12.dp))
+        SectionHeader(text = Labels.INSTRUMENT)
+        Spacer(modifier = Modifier.height(PADDING_MEDIUM))
         
         OutlinedTextField(
             value = instrument.displayName,
             onValueChange = { },
-            label = { Text("Search symbol...") },
+            label = { Text(Labels.SEARCH_SYMBOL) },
             modifier = Modifier.fillMaxWidth(),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -106,12 +165,6 @@ private fun InstrumentSection(
             ),
             trailingIcon = { Icon(Icons.Default.Search, contentDescription = null) }
         )
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        Column {
-            listOf("NIFTY 24DEC 22000 CE", "BANKNIFTY 27DEC 48000 PE", "NIFTY FUT 28DEC")
-                .forEach { InstrumentSuggestion(it) }
-        }
     }
 }
 
@@ -120,7 +173,7 @@ private fun InstrumentSuggestion(name: String) {
     TextButton(onClick = { }, modifier = Modifier.fillMaxWidth()) {
         Text(name, modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.bodyMedium)
     }
-    Divider(color = MaterialTheme.colorScheme.surfaceVariant)
+    HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
 }
 
 @Composable
@@ -129,48 +182,56 @@ private fun TimeSettingsSection(
     onConfigChange: (StrategyConfig) -> Unit
 ) {
     OrbCard {
-        SectionHeader(text = "Time Settings")
-        Spacer(modifier = Modifier.height(12.dp))
+        SectionHeader(text = Labels.TIME_SETTINGS)
+        Spacer(modifier = Modifier.height(PADDING_MEDIUM))
         
         Text(
-            "ORB Window",
+            Labels.ORB_WINDOW,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(PADDING_SMALL))
         
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(PADDING_SMALL)
         ) {
             TimeFieldRow(
                 time = config.orbStartTime,
                 label = "Start",
                 onTimeChange = { onConfigChange(config.copy(orbStartTime = it)) },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                useAMPM = false,
+                showTimePicker = false
             )
             TimeFieldRow(
                 time = config.orbEndTime,
                 label = "End",
                 onTimeChange = { onConfigChange(config.copy(orbEndTime = it)) },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                useAMPM = false,
+                showTimePicker = false
             )
         }
         
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(PADDING_LARGE))
         TimeFieldRow(
             time = config.autoExitTime,
-            label = "Auto Exit Time",
+            label = Labels.AUTO_EXIT_TIME_LABEL,
             onTimeChange = { onConfigChange(config.copy(autoExitTime = it)) },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            minTime = LocalTime.of(9, 31),
+            maxTime = LocalTime.of(15, 15)
         )
         
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(PADDING_MEDIUM))
         TimeFieldRow(
             time = config.noReentryTime,
-            label = "No Re-enter after this Time",
+            label = Labels.NO_REENTRY_TIME_LABEL,
             onTimeChange = { onConfigChange(config.copy(noReentryTime = it)) },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            minTime = LocalTime.of(9, 31),
+            maxTime = LocalTime.of(15, 0)
         )
     }
 }
@@ -179,21 +240,86 @@ private fun TimeSettingsSection(
 private fun TimeFieldRow(
     time: LocalTime,
     label: String,
-    onTimeChange: (LocalTime) -> Unit,
-    modifier: Modifier = Modifier
+    onTimeChange: (LocalTime) -> Unit = {},
+    modifier: Modifier = Modifier,
+    useAMPM: Boolean = true,
+    showTimePicker: Boolean = true,
+    minTime: LocalTime? = null,
+    maxTime: LocalTime? = null
 ) {
-    OutlinedTextField(
-        value = time.toString(),
-        onValueChange = { },
-        label = { Text(label) },
-        modifier = modifier.fillMaxWidth(),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        readOnly = true,
-        trailingIcon = { Icon(Icons.Default.Schedule, contentDescription = null) }
-    )
+    var isDialogOpen by remember { mutableStateOf(false) }
+    
+    val formatter = if (useAMPM) {
+        DateTimeFormatter.ofPattern("hh:mm a")
+    } else {
+        DateTimeFormatter.ofPattern("HH:mm")
+    }
+
+    Box(modifier = modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            value = time.format(formatter),
+            onValueChange = { },
+            label = { Text(label) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(
+                    enabled = showTimePicker,
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() }
+                ) { if (showTimePicker) isDialogOpen = true },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant,
+                disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                disabledBorderColor = MaterialTheme.colorScheme.primary
+            ),
+            enabled = false,
+            readOnly = true,
+            textStyle = MaterialTheme.typography.bodyMedium.copy(
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            ),
+            trailingIcon = if (showTimePicker) { 
+                { 
+                    Icon(
+                        Icons.Default.Schedule, 
+                        contentDescription = "Select time",
+                        modifier = Modifier.clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { isDialogOpen = true }
+                    )
+                }
+            } else {
+                null
+            }
+        )
+    }
+
+    if (isDialogOpen && showTimePicker) {
+        if (useAMPM) {
+            TimePickerDialogAMPM(
+                initialTime = time,
+                onTimeSelected = { selectedTime ->
+                    onTimeChange(selectedTime)
+                    isDialogOpen = false
+                },
+                onDismiss = { isDialogOpen = false },
+                minTime = minTime,
+                maxTime = maxTime
+            )
+        } else {
+            TimePickerDialog(
+                initialTime = time,
+                onTimeSelected = { selectedTime ->
+                    onTimeChange(selectedTime)
+                    isDialogOpen = false
+                },
+                onDismiss = { isDialogOpen = false }
+            )
+        }
+    }
 }
 
 @Composable
@@ -203,7 +329,7 @@ private fun ConfigSection(
 ) {
     OrbCard {
         SectionHeader(text = title)
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(PADDING_MEDIUM))
         content()
     }
 }
@@ -213,24 +339,36 @@ private fun EntryParametersSection(
     config: StrategyConfig,
     onConfigChange: (StrategyConfig) -> Unit
 ) {
-    ConfigSection("Entry Parameters") {
-        NumberField(
-            value = config.breakoutBuffer.toString(),
-            label = "Breakout Buffer (ticks)",
-            onValueChange = {
-                it.toIntOrNull()?.let { value ->
-                    onConfigChange(config.copy(breakoutBuffer = value))
-                }
-            }
+    ConfigSection(Labels.ENTRY_PARAMETERS) {
+        NumberFieldWithDialogLocal(
+            value = config.breakoutBuffer,
+            label = Labels.BREAKOUT_BUFFER_LABEL,
+            onValueChange = { newValue ->
+                onConfigChange(config.copy(breakoutBuffer = newValue))
+            },
+            range = MIN_BREAKOUT_BUFFER..MAX_BREAKOUT_BUFFER
         )
         
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(PADDING_MEDIUM))
         
-        DropdownField(
-            value = config.orderType.name,
-            label = "Order Type",
-            options = OrderType.entries.map { it.name },
-            onValueChange = { onConfigChange(config.copy(orderType = OrderType.valueOf(it))) }
+        OutlinedTextField(
+            value = Labels.ORDER_TYPE_MARKET,
+            onValueChange = { },
+            label = { Text(Labels.ORDER_TYPE_LABEL) },
+            modifier = Modifier.fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant,
+                disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                disabledBorderColor = MaterialTheme.colorScheme.surfaceVariant
+            ),
+            enabled = false,
+            readOnly = true,
+            textStyle = MaterialTheme.typography.bodyMedium.copy(
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
         )
     }
 }
@@ -240,27 +378,43 @@ private fun ExitRulesSection(
     config: StrategyConfig,
     onConfigChange: (StrategyConfig) -> Unit
 ) {
-    ConfigSection("Exit Rules") {
+    ConfigSection(Labels.EXIT_RULES) {
         NumberField(
-            value = config.targetPoints.toString(),
-            label = "Target Points",
+            value = config.targetPoints.toInt().toString(),
+            label = Labels.TARGET_POINTS_LABEL,
             onValueChange = {
-                it.toDoubleOrNull()?.let { value ->
-                    onConfigChange(config.copy(targetPoints = value))
+                val intValue = it.filter { c -> c.isDigit() }
+                if (intValue.isNotEmpty()) {
+                    intValue.toIntOrNull()?.let { value ->
+                        if (value >= 0) {
+                            onConfigChange(config.copy(targetPoints = value.toDouble()))
+                        }
+                    }
+                } else if (it.isEmpty()) {
+                    onConfigChange(config.copy(targetPoints = 0.0))
                 }
-            }
+            },
+            keyboardType = KeyboardType.Number
         )
         
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(PADDING_MEDIUM))
         
         NumberField(
-            value = config.stopLossPoints.toString(),
-            label = "Stop Loss Points",
+            value = config.stopLossPoints.toInt().toString(),
+            label = Labels.STOP_LOSS_POINTS_LABEL,
             onValueChange = {
-                it.toDoubleOrNull()?.let { value ->
-                    onConfigChange(config.copy(stopLossPoints = value))
+                val intValue = it.filter { c -> c.isDigit() }
+                if (intValue.isNotEmpty()) {
+                    intValue.toIntOrNull()?.let { value ->
+                        if (value >= 0) {
+                            onConfigChange(config.copy(stopLossPoints = value.toDouble()))
+                        }
+                    }
+                } else if (it.isEmpty()) {
+                    onConfigChange(config.copy(stopLossPoints = 0.0))
                 }
-            }
+            },
+            keyboardType = KeyboardType.Number
         )
     }
 }
@@ -270,26 +424,67 @@ private fun PositionSizingSection(
     config: StrategyConfig,
     onConfigChange: (StrategyConfig) -> Unit
 ) {
-    ConfigSection("Position Sizing") {
-        NumberField(
-            value = config.lotSize.toString(),
-            label = "Lot Size",
-            onValueChange = { updateIfValid(it, { it.toIntOrNull() }, 1) { value ->
-                onConfigChange(config.copy(lotSize = value))
-            } }
-        )
+    ConfigSection(Labels.POSITION_SIZING) {
+        var lotSizeFocused by remember { mutableStateOf(false) }
         
-        Spacer(modifier = Modifier.height(12.dp))
+        Box(modifier = Modifier.fillMaxWidth()) {
+            NumberField(
+                value = config.lotSize.toString(),
+                label = Labels.LOT_SIZE_LABEL,
+                onValueChange = { input ->
+                    if (input.isEmpty()) {
+                        onConfigChange(config.copy(lotSize = 0))
+                    } else {
+                        updateIfValid(input, { it.toIntOrNull() }, 0) { value ->
+                            onConfigChange(config.copy(lotSize = value))
+                        }
+                    }
+                },
+                keyboardType = KeyboardType.Number,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onFocusChanged { lotSizeFocused = it.isFocused }
+            )
+            
+            Text(
+                text = getQuantityDisplay(config.lotSize),
+                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                color = if (lotSizeFocused) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = PADDING_SMALL, bottom = PADDING_EXTRA_SMALL)
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(PADDING_MEDIUM))
         
         NumberField(
             value = config.maxPositions.toString(),
-            label = "Max Positions",
-            onValueChange = { updateIfValid(it, { it.toIntOrNull() }, 1) { value ->
-                onConfigChange(config.copy(maxPositions = value))
-            } }
+            label = Labels.MAX_POSITION_LABEL,
+            onValueChange = { input ->
+                if (input.isEmpty()) {
+                    onConfigChange(config.copy(maxPositions = 0))
+                } else {
+                    updateIfValid(input, { it.toIntOrNull() }, 0) { value ->
+                        onConfigChange(config.copy(maxPositions = value))
+                    }
+                }
+            }
         )
     }
 }
+
+private fun buildValidationMessage(
+    targetIsZero: Boolean,
+    stopLossIsZero: Boolean,
+    lotSizeInvalid: Boolean,
+    maxPositionsInvalid: Boolean
+): String = com.trading.orb.ui.utils.buildValidationMessage(
+    targetIsZero = targetIsZero,
+    stopLossIsZero = stopLossIsZero,
+    lotSizeInvalid = lotSizeInvalid,
+    maxPositionsInvalid = maxPositionsInvalid
+)
 
 @Composable
 private fun NumberField(
@@ -376,6 +571,65 @@ private fun <T> updateIfValid(
     }
 }
 
+@Composable
+private fun NumberFieldWithDialogLocal(
+    value: Int,
+    label: String,
+    onValueChange: (Int) -> Unit = {},
+    modifier: Modifier = Modifier,
+    range: IntRange = MIN_BREAKOUT_BUFFER..MAX_BREAKOUT_BUFFER
+) {
+    var isDialogOpen by remember { mutableStateOf(false) }
+
+    OutlinedTextField(
+        value = value.toString(),
+        onValueChange = { },
+        label = { Text(label) },
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            ) { isDialogOpen = true },
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant,
+            disabledTextColor = MaterialTheme.colorScheme.onSurface,
+            disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            disabledBorderColor = MaterialTheme.colorScheme.primary
+        ),
+        enabled = false,
+        readOnly = true,
+        textStyle = MaterialTheme.typography.bodyMedium.copy(
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        ),
+        trailingIcon = {
+            Icon(
+                Icons.Default.Edit,
+                contentDescription = "Select value",
+                modifier = Modifier.clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() }
+                ) { isDialogOpen = true }
+            )
+        }
+    )
+
+    if (isDialogOpen) {
+        NumberPickerDialog(
+            initialValue = value,
+            range = range,
+            onValueSelected = { selectedValue ->
+                onValueChange(selectedValue)
+                isDialogOpen = false
+            },
+            onDismiss = { isDialogOpen = false },
+            title = label
+        )
+    }
+}
+
 @Preview
 @Composable
 fun StrategyConfigScreenPreview() {
@@ -386,4 +640,3 @@ fun StrategyConfigScreenPreview() {
         )
     }
 }
-

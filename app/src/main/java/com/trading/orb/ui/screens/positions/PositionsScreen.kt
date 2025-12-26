@@ -1,6 +1,5 @@
 package com.trading.orb.ui.screens.positions
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.trading.orb.ui.utils.*
 import com.trading.orb.data.model.*
 import com.trading.orb.ui.components.*
 import com.trading.orb.ui.state.PositionUiModel
@@ -108,7 +108,7 @@ private fun PositionsScreenContent(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
+                contentPadding = PaddingValues(PADDING_STANDARD),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(positions) { positionUiModel ->
@@ -160,7 +160,7 @@ private fun PositionCard(
         modifier = Modifier.border(
             width = 2.dp,
             color = borderColor,
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(CORNER_RADIUS_LARGE)
         )
     ) {
         // Header: Instrument name and side badge
@@ -327,7 +327,7 @@ private fun LevelBox(
 ) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(CORNER_RADIUS_MEDIUM))
             .fillMaxWidth()
             .padding(12.dp)
     ) {

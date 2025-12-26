@@ -11,8 +11,8 @@ object MockScenarios {
 
         val config = StrategyConfig(
             instrument = Instrument("NIFTY24DEC22000CE", "NSE", 50, 0.05, "NIFTY 22000 CE"),
-            orbStartTime = LocalTime.of(9, 15),
-            orbEndTime = LocalTime.of(9, 30),
+            orbStartTime = LocalTime.of(9, 15),  // ORB_START_TIME
+            orbEndTime = LocalTime.of(9, 30),    // ORB_END_TIME
             breakoutBuffer = 2,
             targetPoints = 15.0,
             stopLossPoints = 8.0
@@ -26,8 +26,8 @@ object MockScenarios {
 
         val config = StrategyConfig(
             instrument = Instrument("NIFTY24DEC22000CE", "NSE", 50, 0.05),
-            orbStartTime = LocalTime.of(9, 15),
-            orbEndTime = LocalTime.of(9, 30),
+            orbStartTime = LocalTime.of(9, 15),  // ORB_START_TIME
+            orbEndTime = LocalTime.of(9, 30),    // ORB_END_TIME
             breakoutBuffer = 2,
             targetPoints = 15.0,
             stopLossPoints = 5.0

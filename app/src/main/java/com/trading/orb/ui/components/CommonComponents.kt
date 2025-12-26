@@ -350,7 +350,7 @@ fun StatCard(
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                fontSize = 18.sp
+                fontSize = TEXT_SIZE_EXTRA_LARGE
             )
             Spacer(modifier = Modifier.height(PADDING_EXTRA_SMALL))
             Text(
@@ -360,7 +360,7 @@ fun StatCard(
                 textAlign = TextAlign.Center,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                fontSize = 10.sp
+                fontSize = TEXT_SIZE_SMALL
             )
         }
     }

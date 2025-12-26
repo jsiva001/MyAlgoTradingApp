@@ -2,6 +2,15 @@ package com.trading.orb.data.model
 
 import java.time.LocalDateTime
 import java.time.LocalTime
+import com.trading.orb.ui.utils.*
+
+/**
+ * Helper function to convert time string (HH:mm) to LocalTime
+ */
+private fun parseTime(timeString: String): LocalTime {
+    val parts = timeString.split(":")
+    return LocalTime.of(parts[0].toInt(), parts[1].toInt())
+}
 
 /**
  * Trading mode enum
@@ -141,18 +150,18 @@ data class StrategyConfig(
     val id: String = java.util.UUID.randomUUID().toString(),
     val name: String = "ORB 15-Min",
     val instrument: Instrument,
-    val orbStartTime: LocalTime = LocalTime.of(9, 15),
-    val orbEndTime: LocalTime = LocalTime.of(9, 30),
-    val autoExitTime: LocalTime = LocalTime.of(15, 15), // User configurable - default 15:15 (3:15 PM)
-    val noReentryTime: LocalTime = LocalTime.of(15, 0),
-    val breakoutBuffer: Int = 2,
+    val orbStartTime: LocalTime = parseTime(ORB_START_TIME),
+    val orbEndTime: LocalTime = parseTime(ORB_END_TIME),
+    val autoExitTime: LocalTime = parseTime(AUTO_EXIT_TIME_DEFAULT),
+    val noReentryTime: LocalTime = parseTime(NO_REENTRY_TIME_DEFAULT),
+    val breakoutBuffer: Int = DEFAULT_BREAKOUT_BUFFER,
     val orderType: OrderType = OrderType.MARKET,
-    val targetPoints: Double = 15.0,
-    val stopLossPoints: Double = 8.0,
+    val targetPoints: Double = DEFAULT_TARGET_POINTS.toDouble(),
+    val stopLossPoints: Double = DEFAULT_STOP_LOSS_POINTS.toDouble(),
     val trailingStop: Boolean = false,
-    val lotSize: Int = 1,
-    val maxPositions: Int = 3,
-    val enableAutoExit: Boolean = true, // Enable auto-exit by default (user can disable in config screen)
+    val lotSize: Int = DEFAULT_LOT_SIZE,
+    val maxPositions: Int = DEFAULT_MAX_POSITION,
+    val enableAutoExit: Boolean = true,
     val enabled: Boolean = false
 )
 

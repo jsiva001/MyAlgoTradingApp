@@ -13,17 +13,15 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.trading.orb.ui.utils.*
 import com.trading.orb.data.model.OrderSide
-import com.trading.orb.data.model.Trade
 import com.trading.orb.ui.components.*
 import com.trading.orb.ui.state.TradeHistoryUiModel
 import com.trading.orb.ui.theme.*
 import com.trading.orb.ui.utils.ProfitCalculationUtils
 import com.trading.orb.ui.viewmodel.TradingViewModel
-import timber.log.Timber
 import java.time.format.DateTimeFormatter
 
 enum class HistoryFilter {
@@ -95,7 +93,7 @@ private fun TradeHistoryScreenContent(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
+                contentPadding = PaddingValues(PADDING_STANDARD),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(trades) { trade ->
@@ -192,9 +190,8 @@ private fun TradeStatistics(trades: List<TradeHistoryUiModel>) {
                 color = Success
             )
 
-            Divider(
+            VerticalDivider(
                 modifier = Modifier
-                    .width(1.dp)
                     .height(50.dp),
                 color = SurfaceVariant
             )
@@ -239,7 +236,7 @@ private fun TradeCard(trade: TradeHistoryUiModel) {
         modifier = Modifier.border(
             width = 2.dp,
             color = borderColor,
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(CORNER_RADIUS_LARGE)
         )
     ) {
         // Header

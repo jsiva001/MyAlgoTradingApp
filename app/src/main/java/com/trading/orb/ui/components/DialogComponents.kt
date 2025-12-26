@@ -24,6 +24,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.trading.orb.data.model.TradingMode
 import com.trading.orb.ui.theme.*
+import com.trading.orb.ui.utils.ICON_SIZE_LARGE
+import com.trading.orb.ui.utils.PADDING_EXTRA_SMALL
+import com.trading.orb.ui.utils.PADDING_SMALL
+import com.trading.orb.ui.utils.TEXT_SIZE_SMALL
 
 // ============ DIALOG TEMPLATES ============
 
@@ -92,7 +96,7 @@ private fun DialogHeader(
                 imageVector = Icons.Default.Info,
                 contentDescription = null,
                 tint = modeColor,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(ICON_SIZE_LARGE)
             )
         }
 
@@ -106,13 +110,13 @@ private fun DialogHeader(
             textAlign = TextAlign.Center
         )
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(PADDING_EXTRA_SMALL))
 
         Text(
             text = "Mode: ${tradingMode.name}",
             style = MaterialTheme.typography.labelSmall,
             color = TextSecondary,
-            fontSize = 11.sp
+            fontSize = TEXT_SIZE_SMALL
         )
     }
 }
@@ -124,7 +128,6 @@ fun ConfirmationDialog(
     isVisible: Boolean,
     title: String,
     message: String,
-    tradingMode: TradingMode = TradingMode.PAPER,
     confirmText: String = "Confirm",
     cancelText: String = "Cancel",
     isDangerous: Boolean = false,
@@ -192,7 +195,6 @@ fun InfoDialog(
     isVisible: Boolean,
     title: String,
     message: String,
-    tradingMode: TradingMode = TradingMode.PAPER,
     icon: ImageVector = Icons.Default.Info,
     buttonText: String = "OK",
     onDismiss: () -> Unit = {}
@@ -228,7 +230,7 @@ fun InfoDialog(
                             imageVector = icon,
                             contentDescription = null,
                             tint = Primary,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(ICON_SIZE_LARGE)
                         )
                     }
 
@@ -268,7 +270,6 @@ fun ErrorDialog(
     isVisible: Boolean,
     title: String,
     message: String,
-    tradingMode: TradingMode = TradingMode.PAPER,
     errorCode: String? = null,
     showRetry: Boolean = true,
     onRetry: () -> Unit = {},
@@ -305,7 +306,7 @@ fun ErrorDialog(
                             imageVector = Icons.Default.ErrorOutline,
                             contentDescription = null,
                             tint = Error,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(ICON_SIZE_LARGE)
                         )
                     }
 
@@ -320,7 +321,7 @@ fun ErrorDialog(
                     )
 
                     if (errorCode != null) {
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(PADDING_SMALL))
                         Text(
                             text = "Error Code: $errorCode",
                             style = MaterialTheme.typography.labelSmall,
@@ -415,7 +416,6 @@ fun SuccessDialog(
     isVisible: Boolean,
     title: String = "Success",
     message: String,
-    tradingMode: TradingMode = TradingMode.PAPER,
     autoCloseMs: Long? = 2000,
     onDismiss: () -> Unit = {},
     onClose: () -> Unit = {}
@@ -470,13 +470,13 @@ fun SuccessDialog(
                     )
 
                     if (autoCloseMs != null) {
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(PADDING_SMALL))
                         Text(
                             text = "Auto closing...",
                             style = MaterialTheme.typography.labelSmall,
                             color = TextTertiary,
                             textAlign = TextAlign.Center,
-                            fontSize = 10.sp
+                            fontSize = TEXT_SIZE_SMALL
                         )
                     }
                 }

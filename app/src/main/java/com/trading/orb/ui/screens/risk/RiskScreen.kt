@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.trading.orb.ui.utils.*
 import com.trading.orb.data.model.RiskSettings
 import com.trading.orb.ui.components.*
 import com.trading.orb.ui.event.RiskUiEvent
@@ -50,7 +51,7 @@ fun RiskScreen(
 
 @Composable
 private fun RiskScreenContent(
-    uiState: RiskUiState = RiskUiState(),
+    uiState: RiskUiState,
     onSaveRiskLimits: () -> Unit,
     onCloseAllPositions: () -> Unit,
     onPauseTrading: () -> Unit,
@@ -154,7 +155,7 @@ private fun DailyLimitsSection(
 
         // Max Daily Loss Progress
         LinearProgressIndicator(
-            progress = (settings.currentDailyLoss / settings.maxDailyLoss).toFloat(),
+            progress = { (settings.currentDailyLoss / settings.maxDailyLoss).toFloat() },
             modifier = Modifier.fillMaxWidth(),
             color = Error
         )
@@ -189,7 +190,7 @@ private fun DailyLimitsSection(
 
         // Max Daily Trades Progress
         LinearProgressIndicator(
-            progress = (settings.currentDailyTrades.toDouble() / settings.maxDailyTrades).toFloat(),
+            progress = { (settings.currentDailyTrades.toDouble() / settings.maxDailyTrades).toFloat() },
             modifier = Modifier.fillMaxWidth(),
             color = MaterialTheme.colorScheme.primary
         )
@@ -420,7 +421,7 @@ private fun EmergencyControlsSection(
 fun RiskScreenPreview() {
     OrbTradingTheme(tradingMode = com.trading.orb.data.model.TradingMode.PAPER) {
         RiskScreenContent(
-            uiState = RiskPreviewProvider.sampleRiskUiState(),
+            uiState = RiskUiState(),
             onSaveRiskLimits = {},
             onCloseAllPositions = {},
             onPauseTrading = {}
@@ -433,7 +434,7 @@ fun RiskScreenPreview() {
 fun RiskScreenLivePreview() {
     OrbTradingTheme(tradingMode = com.trading.orb.data.model.TradingMode.LIVE) {
         RiskScreenContent(
-            uiState = RiskPreviewProvider.sampleRiskUiState(),
+            uiState = RiskUiState(),
             onSaveRiskLimits = {},
             onCloseAllPositions = {},
             onPauseTrading = {}
