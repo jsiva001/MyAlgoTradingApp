@@ -33,31 +33,36 @@ import com.trading.orb.ui.utils.TimePickerDialogAMPM
 import com.trading.orb.ui.utils.NumberPickerDialog
 import com.trading.orb.ui.utils.ShowValidationDialog
 
+import com.trading.orb.ui.mvi.strategy.StrategyConfigurationViewModel
+import com.trading.orb.ui.mvi.strategy.StrategyConfigurationScreenEffect
+import com.trading.orb.ui.mvi.strategy.StrategyConfigurationScreenState
+
 @Composable
 fun StrategyConfigScreen(
-    viewModel: StrategyConfigViewModel = hiltViewModel(),
+    viewModel: StrategyConfigurationViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.strategyConfigUiState.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
-    LaunchEventCollector(eventFlow = viewModel.uiEvent) { event ->
+    LaunchEventCollector(eventFlow = viewModel.effects) { event ->
         when (event) {
-            is StrategyConfigUiEvent.ShowError -> {}
-            is StrategyConfigUiEvent.ShowSuccess -> {}
-            is StrategyConfigUiEvent.ConfigurationSaved -> {}
+            is StrategyConfigurationScreenEffect.ShowError -> {}
+            is StrategyConfigurationScreenEffect.ShowSuccess -> {}
+            is StrategyConfigurationScreenEffect.ShowUnsavedChangesDialog -> {}
+            else -> {}
         }
     }
     
     StrategyConfigScreenContent(
         uiState = uiState,
-        onSaveConfig = { viewModel.saveConfiguration() },
+        onSaveConfig = { },
         modifier = modifier
     )
 }
 
 @Composable
 private fun StrategyConfigScreenContent(
-    uiState: StrategyConfigUiState,
+    uiState: StrategyConfigurationScreenState,
     onSaveConfig: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -635,7 +640,7 @@ private fun NumberFieldWithDialog(
 fun StrategyConfigScreenPreview() {
     OrbTradingTheme {
         StrategyConfigScreenContent(
-            uiState = StrategyConfigPreviewProvider.sampleStrategyConfigUiState(),
+            uiState = StrategyConfigurationScreenState(),
             onSaveConfig = { }
         )
     }

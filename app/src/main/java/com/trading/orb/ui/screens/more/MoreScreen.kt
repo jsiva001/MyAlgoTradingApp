@@ -15,12 +15,13 @@ import androidx.compose.ui.Modifier
 import com.trading.orb.ui.utils.*
 import androidx.navigation.NavController
 import com.trading.orb.ui.components.*
-import com.trading.orb.ui.event.MoreUiEvent
+import com.trading.orb.ui.mvi.more.MoreViewModel
+import com.trading.orb.ui.mvi.more.MoreScreenEffect
+import com.trading.orb.ui.mvi.more.MoreScreenState
 import com.trading.orb.ui.theme.*
 import androidx.compose.ui.tooling.preview.Preview
 import com.trading.orb.ui.navigation.Screen
 import com.trading.orb.ui.utils.LaunchEventCollector
-import com.trading.orb.ui.utils.*
 
 @Composable
 fun MoreScreen(
@@ -28,15 +29,16 @@ fun MoreScreen(
     viewModel: MoreViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.moreUiState.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
-    LaunchEventCollector(eventFlow = viewModel.uiEvent) { event ->
+    LaunchEventCollector(eventFlow = viewModel.effects) { event ->
         when (event) {
-            is MoreUiEvent.ShowError -> {}
-            is MoreUiEvent.ShowSuccess -> {}
-            is MoreUiEvent.OpenFeedback -> {}
-            is MoreUiEvent.OpenUrl -> {}
-            is MoreUiEvent.ShareApp -> {}
+            is MoreScreenEffect.ShowError -> {}
+            is MoreScreenEffect.ShowSuccess -> {}
+            is MoreScreenEffect.OpenFeedback -> {}
+            is MoreScreenEffect.OpenURL -> {}
+            is MoreScreenEffect.ShareApp -> {}
+            else -> {}
         }
     }
     
@@ -49,7 +51,7 @@ fun MoreScreen(
 
 @Composable
 private fun MoreScreenContent(
-    uiState: MoreUiState = MoreUiState(),
+    uiState: MoreScreenState = MoreScreenState(),
     navController: NavController? = null,
     modifier: Modifier = Modifier
 ) {
@@ -134,8 +136,8 @@ private fun MoreScreenContent(
         )
 
         BrokerCard(
-            brokerName = uiState.brokerName,
-            isConnected = uiState.isConnected,
+            brokerName = "Paper Trading",
+            isConnected = true,
             onDisconnect = { }
         )
 
@@ -263,7 +265,7 @@ private fun BrokerCard(
 @Composable
 fun MoreScreenPreview() {
     OrbTradingTheme(tradingMode = com.trading.orb.data.model.TradingMode.PAPER) {
-        MoreScreenContent(uiState = MorePreviewProvider.sampleMoreUiState())
+        MoreScreenContent(uiState = MoreScreenState())
     }
 }
 
@@ -271,6 +273,6 @@ fun MoreScreenPreview() {
 @Composable
 fun MoreScreenLivePreview() {
     OrbTradingTheme(tradingMode = com.trading.orb.data.model.TradingMode.LIVE) {
-        MoreScreenContent(uiState = MorePreviewProvider.sampleMoreUiState())
+        MoreScreenContent(uiState = MoreScreenState())
     }
 }

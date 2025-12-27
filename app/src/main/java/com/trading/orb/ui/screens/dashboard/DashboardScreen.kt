@@ -22,50 +22,61 @@ import com.trading.orb.ui.state.ErrorState
 import com.trading.orb.ui.state.LoadingState
 import com.trading.orb.ui.theme.*
 import com.trading.orb.ui.utils.LaunchEventCollector
-import com.trading.orb.ui.viewmodel.TradingViewModel
-import com.trading.orb.ui.viewmodel.UiEvent
 import timber.log.Timber
 
 @Composable
 fun DashboardScreen(
-    tradingViewModel: TradingViewModel = hiltViewModel(),
+    viewModel: com.trading.orb.ui.mvi.dashboard.DashboardViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
-    val uiState by tradingViewModel.dashboardUiState.collectAsStateWithLifecycle()
-    val repoAppState by tradingViewModel.appState.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
-    // Convert repository AppState to UI AppState
-    val appState = repoAppState.toAppState()
-    
-    LaunchEventCollector(eventFlow = tradingViewModel.uiEvent) { event ->
-        when (event) {
-            is UiEvent.ShowError -> {}
-            is UiEvent.ShowSuccess -> {}
+    LaunchEventCollector(eventFlow = viewModel.effects) { effect ->
+        when (effect) {
+            is com.trading.orb.ui.mvi.dashboard.DashboardEffect.ShowError -> {
+                Timber.e("Dashboard Error: ${effect.message}")
+            }
+            is com.trading.orb.ui.mvi.dashboard.DashboardEffect.ShowSuccess -> {
+                Timber.d("Dashboard Success: ${effect.message}")
+            }
+            is com.trading.orb.ui.mvi.dashboard.DashboardEffect.StrategyStarted -> {
+                Timber.i("Strategy started: ${effect.message}")
+            }
+            is com.trading.orb.ui.mvi.dashboard.DashboardEffect.StrategyStopped -> {
+                Timber.i("Strategy stopped: ${effect.message}")
+            }
             else -> {}
         }
     }
     
     DashboardScreenContent(
         uiState = uiState,
-        appState = appState,
-        onToggleStrategy = { tradingViewModel.toggleStrategy() },
-        onToggleMode = { tradingViewModel.toggleTradingMode() },
-        onEmergencyStop = { tradingViewModel.emergencyStop() },
-        onRetry = { tradingViewModel.retryDashboard() },
+        onIntent = viewModel::sendIntent,
         modifier = modifier
     )
 }
 
 @Composable
 private fun DashboardScreenContent(
-    uiState: DashboardUiState,
-    appState: AppState,
-    onToggleStrategy: () -> Unit,
-    onToggleMode: () -> Unit,
-    onEmergencyStop: () -> Unit,
-    onRetry: () -> Unit,
+    uiState: com.trading.orb.ui.mvi.dashboard.DashboardState,
+    onIntent: (com.trading.orb.ui.mvi.dashboard.DashboardIntent) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Convert MVI AppState to UI AppState for display components
+    val displayAppState = with(uiState.appState) {
+        AppState(
+            tradingMode = tradingMode,
+            strategyStatus = strategyStatus,
+            connectionStatus = connectionStatus,
+            dailyStats = dailyStats,
+            orbLevels = orbLevels,
+            strategyConfig = strategyConfig,
+            activePositions = activePositions,
+            closedTrades = closedTrades,
+            isLoading = false
+        )
+    }
+    
     Column(
         modifier = modifier.fillMaxSize()
     ) {
@@ -77,7 +88,7 @@ private fun DashboardScreenContent(
                 DashboardErrorScreen(
                     message = uiState.error.errorMessage,
                     isRetryable = uiState.error.isRetryable,
-                    onRetry = onRetry
+                    onRetry = { onIntent(com.trading.orb.ui.mvi.dashboard.DashboardIntent.RetryDashboard) }
                 )
             }
             else -> {
@@ -89,27 +100,33 @@ private fun DashboardScreenContent(
                     verticalArrangement = Arrangement.spacedBy(PADDING_LARGE)
                 ) {
                     // Quick Stats
-                    QuickStatsSection(appState = appState)
+                    QuickStatsSection(appState = displayAppState)
 
                     // Strategy Status
                     StrategyStatusCard(
-                        status = appState.strategyStatus,
-                        onToggleStrategy = onToggleStrategy
+                        status = uiState.strategyStatus,
+                        onToggleStrategy = {
+                            onIntent(com.trading.orb.ui.mvi.dashboard.DashboardIntent.ToggleStrategy)
+                        }
                     )
 
                     // ORB Levels Card - Show when strategy is ACTIVE
-                    if (appState.strategyStatus == StrategyStatus.ACTIVE) {
+                    if (uiState.strategyStatus == StrategyStatus.ACTIVE) {
                         OrbLevelsCard(
-                            orbLevels = appState.orbLevels,
-                            instrument = appState.strategyConfig?.instrument
+                            orbLevels = uiState.appState.orbLevels,
+                            instrument = uiState.strategyConfig?.instrument
                         )
                     }
 
                     // Quick Actions
                     QuickActionsSection(
-                        tradingMode = appState.tradingMode,
-                        onToggleMode = onToggleMode,
-                        onEmergencyStop = onEmergencyStop
+                        tradingMode = uiState.tradingMode,
+                        onToggleMode = {
+                            onIntent(com.trading.orb.ui.mvi.dashboard.DashboardIntent.ToggleTradingMode)
+                        },
+                        onEmergencyStop = {
+                            onIntent(com.trading.orb.ui.mvi.dashboard.DashboardIntent.EmergencyStop)
+                        }
                     )
                 }
             }
@@ -550,12 +567,16 @@ private fun DashboardErrorScreen(
 fun DashboardScreenLiveSuccessPreview() {
     OrbTradingTheme(tradingMode = TradingMode.LIVE) {
         DashboardScreenContent(
-            uiState = DashboardPreviewProvider.sampleDashboardUiState(),
-            appState = DashboardPreviewProvider.sampleAppState(tradingMode = TradingMode.LIVE),
-            onToggleStrategy = {},
-            onToggleMode = {},
-            onEmergencyStop = {},
-            onRetry = {}
+            uiState = com.trading.orb.ui.mvi.dashboard.DashboardState(
+                loading = LoadingState(isLoading = false),
+                error = ErrorState(hasError = false),
+                appState = com.trading.orb.data.model.AppState(
+                    tradingMode = TradingMode.LIVE,
+                    strategyStatus = StrategyStatus.ACTIVE,
+                    connectionStatus = ConnectionStatus.CONNECTED
+                )
+            ),
+            onIntent = {},
         )
     }
 }
@@ -565,12 +586,16 @@ fun DashboardScreenLiveSuccessPreview() {
 fun DashboardScreenLoadingPreview() {
     OrbTradingTheme(tradingMode = TradingMode.LIVE) {
         DashboardScreenContent(
-            uiState = DashboardPreviewProvider.sampleDashboardUiState(isLoading = true),
-            appState = DashboardPreviewProvider.sampleAppState(tradingMode = TradingMode.LIVE),
-            onToggleStrategy = {},
-            onToggleMode = {},
-            onEmergencyStop = {},
-            onRetry = {}
+            uiState = com.trading.orb.ui.mvi.dashboard.DashboardState(
+                loading = LoadingState(isLoading = true, loadingMessage = "Loading dashboard..."),
+                error = ErrorState(hasError = false),
+                appState = com.trading.orb.data.model.AppState(
+                    tradingMode = TradingMode.LIVE,
+                    strategyStatus = StrategyStatus.ACTIVE,
+                    connectionStatus = ConnectionStatus.CONNECTED
+                )
+            ),
+            onIntent = {},
         )
     }
 }
@@ -580,15 +605,20 @@ fun DashboardScreenLoadingPreview() {
 fun DashboardScreenErrorRetryablePreview() {
     OrbTradingTheme(tradingMode = TradingMode.LIVE) {
         DashboardScreenContent(
-            uiState = DashboardPreviewProvider.sampleDashboardUiState(
-                hasError = true,
-                errorMessage = "Failed to connect to server. Please check your internet connection."
+            uiState = com.trading.orb.ui.mvi.dashboard.DashboardState(
+                loading = LoadingState(isLoading = false),
+                error = ErrorState(
+                    hasError = true,
+                    errorMessage = "Failed to connect to server. Please check your internet connection.",
+                    isRetryable = true
+                ),
+                appState = com.trading.orb.data.model.AppState(
+                    tradingMode = TradingMode.LIVE,
+                    strategyStatus = StrategyStatus.ACTIVE,
+                    connectionStatus = ConnectionStatus.CONNECTED
+                )
             ),
-            appState = DashboardPreviewProvider.sampleAppState(tradingMode = TradingMode.LIVE),
-            onToggleStrategy = {},
-            onToggleMode = {},
-            onEmergencyStop = {},
-            onRetry = {}
+            onIntent = {},
         )
     }
 }
@@ -596,21 +626,22 @@ fun DashboardScreenErrorRetryablePreview() {
 @Preview(name = "Dashboard - Error State Non-Retryable (Live)", showBackground = true, backgroundColor = 0xFF1A1A1A)
 @Composable
 fun DashboardScreenErrorNonRetryablePreview() {
-    OrbTradingTheme(tradingMode = com.trading.orb.data.model.TradingMode.LIVE) {
+    OrbTradingTheme(tradingMode = TradingMode.LIVE) {
         DashboardScreenContent(
-            uiState = DashboardUiState(
+            uiState = com.trading.orb.ui.mvi.dashboard.DashboardState(
                 loading = LoadingState(isLoading = false),
                 error = ErrorState(
                     hasError = true,
                     errorMessage = "Authorization failed. Please login again.",
                     isRetryable = false
+                ),
+                appState = com.trading.orb.data.model.AppState(
+                    tradingMode = TradingMode.LIVE,
+                    strategyStatus = StrategyStatus.ACTIVE,
+                    connectionStatus = ConnectionStatus.CONNECTED
                 )
             ),
-            appState = DashboardPreviewProvider.sampleAppState(tradingMode = TradingMode.LIVE),
-            onToggleStrategy = {},
-            onToggleMode = {},
-            onEmergencyStop = {},
-            onRetry = {}
+            onIntent = {},
         )
     }
 }
@@ -618,14 +649,19 @@ fun DashboardScreenErrorNonRetryablePreview() {
 @Preview(name = "Dashboard - Positive P&L (Live)", showBackground = true, backgroundColor = 0xFF1A1A1A)
 @Composable
 fun DashboardScreenPositivePnlPreview() {
-    OrbTradingTheme(tradingMode = com.trading.orb.data.model.TradingMode.LIVE) {
+    OrbTradingTheme(tradingMode = TradingMode.LIVE) {
         DashboardScreenContent(
-            uiState = DashboardPreviewProvider.sampleDashboardUiState(),
-            appState = DashboardPreviewProvider.sampleAppState(tradingMode = TradingMode.LIVE, totalPnl = 5000.0, winRate = 75.0),
-            onToggleStrategy = {},
-            onToggleMode = {},
-            onEmergencyStop = {},
-            onRetry = {}
+            uiState = com.trading.orb.ui.mvi.dashboard.DashboardState(
+                loading = LoadingState(isLoading = false),
+                error = ErrorState(hasError = false),
+                appState = com.trading.orb.data.model.AppState(
+                    tradingMode = TradingMode.LIVE,
+                    strategyStatus = StrategyStatus.ACTIVE,
+                    connectionStatus = ConnectionStatus.CONNECTED,
+                    dailyStats = DailyStats(totalPnl = 5000.0, winRate = 75.0, activePositions = 2)
+                )
+            ),
+            onIntent = {},
         )
     }
 }
@@ -633,14 +669,19 @@ fun DashboardScreenPositivePnlPreview() {
 @Preview(name = "Dashboard - Negative P&L (Live)", showBackground = true, backgroundColor = 0xFF1A1A1A)
 @Composable
 fun DashboardScreenNegativePnlPreview() {
-    OrbTradingTheme(tradingMode = com.trading.orb.data.model.TradingMode.LIVE) {
+    OrbTradingTheme(tradingMode = TradingMode.LIVE) {
         DashboardScreenContent(
-            uiState = DashboardPreviewProvider.sampleDashboardUiState(),
-            appState = DashboardPreviewProvider.sampleAppState(tradingMode = TradingMode.LIVE, totalPnl = -1250.0, winRate = 35.0),
-            onToggleStrategy = {},
-            onToggleMode = {},
-            onEmergencyStop = {},
-            onRetry = {}
+            uiState = com.trading.orb.ui.mvi.dashboard.DashboardState(
+                loading = LoadingState(isLoading = false),
+                error = ErrorState(hasError = false),
+                appState = com.trading.orb.data.model.AppState(
+                    tradingMode = TradingMode.LIVE,
+                    strategyStatus = StrategyStatus.ACTIVE,
+                    connectionStatus = ConnectionStatus.CONNECTED,
+                    dailyStats = DailyStats(totalPnl = -1250.0, winRate = 35.0, activePositions = 2)
+                )
+            ),
+            onIntent = {},
         )
     }
 }
@@ -648,14 +689,18 @@ fun DashboardScreenNegativePnlPreview() {
 @Preview(name = "Dashboard - Strategy Inactive (Live)", showBackground = true, backgroundColor = 0xFF1A1A1A)
 @Composable
 fun DashboardScreenStrategyInactivePreview() {
-    OrbTradingTheme(tradingMode = com.trading.orb.data.model.TradingMode.LIVE) {
+    OrbTradingTheme(tradingMode = TradingMode.LIVE) {
         DashboardScreenContent(
-            uiState = DashboardPreviewProvider.sampleDashboardUiState(),
-            appState = DashboardPreviewProvider.sampleAppState(tradingMode = TradingMode.LIVE, strategyStatus = StrategyStatus.INACTIVE),
-            onToggleStrategy = {},
-            onToggleMode = {},
-            onEmergencyStop = {},
-            onRetry = {}
+            uiState = com.trading.orb.ui.mvi.dashboard.DashboardState(
+                loading = LoadingState(isLoading = false),
+                error = ErrorState(hasError = false),
+                appState = com.trading.orb.data.model.AppState(
+                    tradingMode = TradingMode.LIVE,
+                    strategyStatus = StrategyStatus.INACTIVE,
+                    connectionStatus = ConnectionStatus.CONNECTED
+                )
+            ),
+            onIntent = {},
         )
     }
 }
@@ -663,31 +708,20 @@ fun DashboardScreenStrategyInactivePreview() {
 @Preview(name = "Dashboard - Multiple Positions (Live)", showBackground = true, backgroundColor = 0xFF1A1A1A)
 @Composable
 fun DashboardScreenMultiplePositionsPreview() {
-    OrbTradingTheme(tradingMode = com.trading.orb.data.model.TradingMode.LIVE) {
+    OrbTradingTheme(tradingMode = TradingMode.LIVE) {
         DashboardScreenContent(
-            uiState = DashboardPreviewProvider.sampleDashboardUiState(),
-            appState = DashboardPreviewProvider.sampleAppState(tradingMode = TradingMode.LIVE, activePositions = 5, totalPnl = 3500.50, winRate = 72.5),
-            onToggleStrategy = {},
-            onToggleMode = {},
-            onEmergencyStop = {},
-            onRetry = {}
+            uiState = com.trading.orb.ui.mvi.dashboard.DashboardState(
+                loading = LoadingState(isLoading = false),
+                error = ErrorState(hasError = false),
+                appState = com.trading.orb.data.model.AppState(
+                    tradingMode = TradingMode.LIVE,
+                    strategyStatus = StrategyStatus.ACTIVE,
+                    connectionStatus = ConnectionStatus.CONNECTED,
+                    dailyStats = DailyStats(totalPnl = 3500.50, winRate = 72.5, activePositions = 5)
+                )
+            ),
+            onIntent = {},
         )
     }
 }
 
-
-/**
- * Extension function to convert repository AppState to UI AppState
- */
-fun com.trading.orb.data.model.AppState.toAppState(): AppState {
-    return AppState(
-        tradingMode = this.tradingMode,
-        strategyStatus = this.strategyStatus,
-        connectionStatus = this.connectionStatus,
-        dailyStats = this.dailyStats,
-        orbLevels = this.orbLevels,
-        strategyConfig = this.strategyConfig,
-        activePositions = this.activePositions,
-        closedTrades = this.closedTrades
-    )
-}

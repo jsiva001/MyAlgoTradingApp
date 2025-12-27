@@ -19,15 +19,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.trading.orb.ui.utils.*
 import com.trading.orb.ui.components.TimeFormatter
-import com.trading.orb.ui.utils.*
-import com.trading.orb.ui.event.LiveLogsUiEvent
-import com.trading.orb.ui.utils.*
+import com.trading.orb.ui.mvi.livelogs.LiveLogsViewModel
+import com.trading.orb.ui.mvi.livelogs.LiveLogsScreenEffect
+import com.trading.orb.ui.mvi.livelogs.LiveLogsScreenState
 import com.trading.orb.ui.state.LogEntryUiModel
-import com.trading.orb.ui.utils.*
 import com.trading.orb.ui.theme.*
-import com.trading.orb.ui.utils.*
 import com.trading.orb.ui.utils.LaunchEventCollector
-import com.trading.orb.ui.utils.*
 import java.time.LocalDateTime
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,15 +33,15 @@ fun LiveLogsScreen(
     viewModel: LiveLogsViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.liveLogsUiState.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
-    LaunchEventCollector(eventFlow = viewModel.uiEvent) { event ->
+    LaunchEventCollector(eventFlow = viewModel.effects) { event ->
         when (event) {
-            is LiveLogsUiEvent.ShowError -> {}
-            is LiveLogsUiEvent.ShowSuccess -> {}
-            is LiveLogsUiEvent.LogsCleared -> {}
-            is LiveLogsUiEvent.LogsExported -> {}
-            is LiveLogsUiEvent.LogSelected -> {}
+            is LiveLogsScreenEffect.ShowError -> {}
+            is LiveLogsScreenEffect.ShowSuccess -> {}
+            is LiveLogsScreenEffect.ExportLogsFile -> {}
+            is LiveLogsScreenEffect.ScrollToBottomEffect -> {}
+            else -> {}
         }
     }
     
@@ -57,7 +54,7 @@ fun LiveLogsScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LiveLogsScreenContent(
-    uiState: LiveLogsUiState = LiveLogsUiState(),
+    uiState: LiveLogsScreenState = LiveLogsScreenState(),
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
@@ -179,7 +176,7 @@ private fun LogEntryItem(log: LogEntryUiModel) {
 @Composable
 fun LiveLogsScreenPreview() {
     OrbTradingTheme {
-        LiveLogsScreenContent(uiState = LiveLogsPreviewProvider.sampleLiveLogsUiState())
+        LiveLogsScreenContent(uiState = LiveLogsScreenState())
     }
 }
 
@@ -187,6 +184,6 @@ fun LiveLogsScreenPreview() {
 @Composable
 fun LiveLogsScreenLivePreview() {
     OrbTradingTheme {
-        LiveLogsScreenContent(uiState = LiveLogsPreviewProvider.sampleLiveLogsUiState())
+        LiveLogsScreenContent(uiState = LiveLogsScreenState())
     }
 }

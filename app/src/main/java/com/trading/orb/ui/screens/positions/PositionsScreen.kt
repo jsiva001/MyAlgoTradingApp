@@ -82,7 +82,7 @@ fun PositionsScreen(
         totalLoss = totalLoss,
         onClosePosition = { positionId -> 
             Timber.d("📍 onClosePosition called with positionId: $positionId")
-            tradingViewModel.closeTradeAtMarketPrice(positionId, ExitReason.MANUAL_EXIT)
+            tradingViewModel.closePosition(positionId)
         },
         modifier = modifier
     )

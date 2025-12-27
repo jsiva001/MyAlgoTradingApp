@@ -178,7 +178,7 @@ private fun NavigationHost(
     appState: com.trading.orb.data.model.AppState,
     positions: List<com.trading.orb.data.model.Position>,
     trades: List<com.trading.orb.data.model.Trade>,
-    strategyConfig: com.trading.orb.data.model.StrategyConfig,
+    strategyConfig: com.trading.orb.data.model.StrategyConfig?,
     viewModel: TradingViewModel,
     modifier: Modifier = Modifier
 ) {
@@ -188,7 +188,7 @@ private fun NavigationHost(
         modifier = modifier
     ) {
         composable(Screen.Dashboard.route) {
-            DashboardScreen(tradingViewModel = viewModel)
+            DashboardScreen()
         }
 
         composable(Screen.Positions.route) {

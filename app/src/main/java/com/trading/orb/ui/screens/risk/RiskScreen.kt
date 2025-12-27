@@ -22,28 +22,31 @@ import com.trading.orb.ui.components.*
 import com.trading.orb.ui.event.RiskUiEvent
 import com.trading.orb.ui.theme.*
 import com.trading.orb.ui.utils.LaunchEventCollector
+import com.trading.orb.ui.mvi.risk.RiskManagementViewModel
+import com.trading.orb.ui.mvi.risk.RiskManagementScreenEffect
+import com.trading.orb.ui.mvi.risk.RiskManagementScreenState
 
 @Composable
 fun RiskScreen(
-    viewModel: RiskViewModel = hiltViewModel(),
+    viewModel: RiskManagementViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
 ) {
-    val uiState by viewModel.riskUiState.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
-    LaunchEventCollector(eventFlow = viewModel.uiEvent) { event ->
+    LaunchEventCollector(eventFlow = viewModel.effects) { event ->
         when (event) {
-            is RiskUiEvent.ShowError -> {}
-            is RiskUiEvent.ShowSuccess -> {}
-            is RiskUiEvent.AlertDismissed -> {}
-            is RiskUiEvent.AllAlertsAcknowledged -> {}
-            is RiskUiEvent.DataRefreshed -> {}
+            is RiskManagementScreenEffect.ShowError -> {}
+            is RiskManagementScreenEffect.ShowSuccess -> {}
+            is RiskManagementScreenEffect.ShowAlertDetails -> {}
+            is RiskManagementScreenEffect.ShowEmergencyStopConfirm -> {}
+            else -> {}
         }
     }
     
     RiskScreenContent(
         uiState = uiState,
-        onSaveRiskLimits = { viewModel.saveRiskLimits() },
-        onCloseAllPositions = { viewModel.closeAlert("all") },
+        onSaveRiskLimits = { },
+        onCloseAllPositions = { },
         onPauseTrading = { },
         modifier = modifier
     )
@@ -51,7 +54,7 @@ fun RiskScreen(
 
 @Composable
 private fun RiskScreenContent(
-    uiState: RiskUiState,
+    uiState: RiskManagementScreenState,
     onSaveRiskLimits: () -> Unit,
     onCloseAllPositions: () -> Unit,
     onPauseTrading: () -> Unit,
@@ -421,7 +424,7 @@ private fun EmergencyControlsSection(
 fun RiskScreenPreview() {
     OrbTradingTheme(tradingMode = com.trading.orb.data.model.TradingMode.PAPER) {
         RiskScreenContent(
-            uiState = RiskUiState(),
+            uiState = RiskManagementScreenState(),
             onSaveRiskLimits = {},
             onCloseAllPositions = {},
             onPauseTrading = {}
@@ -434,7 +437,7 @@ fun RiskScreenPreview() {
 fun RiskScreenLivePreview() {
     OrbTradingTheme(tradingMode = com.trading.orb.data.model.TradingMode.LIVE) {
         RiskScreenContent(
-            uiState = RiskUiState(),
+            uiState = RiskManagementScreenState(),
             onSaveRiskLimits = {},
             onCloseAllPositions = {},
             onPauseTrading = {}
