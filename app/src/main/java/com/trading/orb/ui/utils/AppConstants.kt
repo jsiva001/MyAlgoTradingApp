@@ -300,3 +300,13 @@ const val DEFAULT_DELAY_MS = 1000L
 // ============ ORB STRATEGY ENGINE CONSTANTS ============
 const val ORB_ENTRY_TAG = "ORB_ENTRY"
 const val ORDER_FAILED_MESSAGE = "Order failed"
+
+// ============ TEST DATA / MOCK STRATEGY CONFIG ============
+// FOR MOCK TESTING: Set ORB window to be 15 minutes from START button click
+// In real implementation with Angel One API, this will be 9:15-9:30 AM
+const val MOCK_ORB_START_HOUR = 0
+const val MOCK_ORB_START_MINUTE = 0
+const val MOCK_ORB_END_HOUR = 23
+const val MOCK_ORB_END_MINUTE = 59
+const val MOCK_AUTO_EXIT_HOUR = 23
+const val MOCK_AUTO_EXIT_MINUTE = 50

@@ -3,6 +3,7 @@ package com.trading.orb.data.repository
 import com.trading.orb.data.model.*
 import com.trading.orb.ui.state.HistoryFilter
 import com.trading.orb.ui.utils.TimberLogs
+import com.trading.orb.ui.utils.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import timber.log.Timber
@@ -30,17 +31,15 @@ class TradingRepositoryImpl @Inject constructor() : TradingRepository {
     private val _strategyConfig = MutableStateFlow(
         StrategyConfig(
             instrument = Instrument(
-                symbol = "NIFTY24DEC22000CE",
-                exchange = "NSE",
-                lotSize = 50,
-                tickSize = 0.05,
-                displayName = "NIFTY 22000 CE"
+                symbol = DEFAULT_INSTRUMENT_SYMBOL,
+                exchange = DEFAULT_INSTRUMENT_EXCHANGE,
+                lotSize = DEFAULT_INSTRUMENT_LOT_SIZE,
+                tickSize = DEFAULT_INSTRUMENT_TICK_SIZE,
+                displayName = DEFAULT_INSTRUMENT_DISPLAY_NAME
             ),
-            // FOR MOCK TESTING: Set ORB window to be 15 minutes from START button click
-            // In real implementation with Angel One API, this will be 9:15-9:30 AM
-            orbStartTime = java.time.LocalTime.of(0, 0), // Start immediately when strategy starts
-            orbEndTime = java.time.LocalTime.of(23, 59), // Keep it open all day for testing
-            autoExitTime = java.time.LocalTime.of(23, 50)
+            orbStartTime = java.time.LocalTime.of(MOCK_ORB_START_HOUR, MOCK_ORB_START_MINUTE),
+            orbEndTime = java.time.LocalTime.of(MOCK_ORB_END_HOUR, MOCK_ORB_END_MINUTE),
+            autoExitTime = java.time.LocalTime.of(MOCK_AUTO_EXIT_HOUR, MOCK_AUTO_EXIT_MINUTE)
         )
     )
     override val strategyConfig: Flow<StrategyConfig> = _strategyConfig
