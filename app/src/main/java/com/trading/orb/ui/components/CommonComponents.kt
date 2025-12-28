@@ -552,7 +552,7 @@ fun TimeField(
 fun SearchField(
     value: String,
     onValueChange: (String) -> Unit,
-    placeholder: String = "Search...",
+    placeholder: String = DEFAULT_SEARCH_PLACEHOLDER,
     modifier: Modifier = Modifier
 ) {
     OutlinedTextField(

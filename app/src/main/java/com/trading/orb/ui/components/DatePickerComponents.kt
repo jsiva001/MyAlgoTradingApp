@@ -26,6 +26,9 @@ import com.trading.orb.ui.utils.CORNER_RADIUS_MEDIUM
 import com.trading.orb.ui.utils.TEXT_SIZE_SMALL
 import com.trading.orb.ui.utils.PADDING_EXTRA_SMALL
 import com.trading.orb.ui.utils.PADDING_SMALL
+import com.trading.orb.ui.utils.*
+import com.trading.orb.ui.utils.DatePickerDefaults
+import com.trading.orb.ui.utils.DatePickerLabels
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -45,12 +48,12 @@ fun DateRangePicker(
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(DATE_PICKER_SPACING)
         ) {
             // Start date field
             DateInputField(
                 value = selectedStartDate,
-                label = "Start Date",
+                label = DatePickerLabels.START_DATE,
                 modifier = Modifier.weight(1f),
                 onDateChange = { selectedStartDate = it }
             )
@@ -58,7 +61,7 @@ fun DateRangePicker(
             // End date field
             DateInputField(
                 value = selectedEndDate,
-                label = "End Date",
+                label = DatePickerLabels.END_DATE,
                 modifier = Modifier.weight(1f),
                 onDateChange = { selectedEndDate = it }
             )
@@ -72,11 +75,11 @@ fun DateRangePicker(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(40.dp),
+                .height(DATE_PICKER_BUTTON_HEIGHT),
             colors = ButtonDefaults.buttonColors(containerColor = Primary),
-            shape = RoundedCornerShape(8.dp)
+            shape = RoundedCornerShape(CORNER_RADIUS_MEDIUM)
         ) {
-            Text("Apply Dates", fontWeight = FontWeight.SemiBold)
+            Text(DatePickerLabels.APPLY_DATES, fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -96,7 +99,7 @@ fun DateInputField(
 
     Column(modifier = modifier) {
         OutlinedTextField(
-            value = value.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
+            value = value.format(DateTimeFormatter.ofPattern(DATE_FORMAT_DISPLAY)),
             onValueChange = {},
             label = { Text(label, fontSize = TEXT_SIZE_SMALL) },
             readOnly = true,
@@ -107,11 +110,11 @@ fun DateInputField(
             trailingIcon = {
                 Icon(
                     imageVector = Icons.Default.Event,
-                    contentDescription = "Select date",
+                    contentDescription = DatePickerLabels.SELECT_DATE_ICON,
                     tint = if (enabled) Primary else TextTertiary
                 )
             },
-            shape = RoundedCornerShape(8.dp),
+            shape = RoundedCornerShape(CORNER_RADIUS_MEDIUM),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = Primary,
                 unfocusedBorderColor = SurfaceVariant,
@@ -149,7 +152,7 @@ fun CalendarPickerDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                "Select Date",
+                DatePickerLabels.SELECT_DATE,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center
@@ -167,7 +170,7 @@ fun CalendarPickerDialog(
                     onNextMonth = { currentMonth = currentMonth.plusMonths(1) }
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(CALENDAR_HEADER_SPACING))
 
                 // Calendar grid
                 CalendarGrid(
@@ -176,7 +179,7 @@ fun CalendarPickerDialog(
                     onDateSelected = { selectedDate = it }
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(DATE_PICKER_DIALOG_BOTTOM_SPACING))
 
                 // Selected date display
                 Box(
@@ -184,11 +187,11 @@ fun CalendarPickerDialog(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(CORNER_RADIUS_MEDIUM))
                         .background(Primary.copy(alpha = 0.1f))
-                        .padding(8.dp),
+                        .padding(PADDING_EXTRA_SMALL),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = selectedDate.format(DateTimeFormatter.ofPattern("EEEE, dd MMMM yyyy")),
+                        text = selectedDate.format(DateTimeFormatter.ofPattern(DATE_FORMAT_SELECTED)),
                         style = MaterialTheme.typography.bodySmall,
                         color = Primary,
                         fontWeight = FontWeight.SemiBold
@@ -200,12 +203,12 @@ fun CalendarPickerDialog(
             Button(
                 onClick = { onDateSelected(selectedDate) }
             ) {
-                Text("OK")
+                Text(DatePickerLabels.CONFIRM)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(DatePickerLabels.CANCEL)
             }
         },
         containerColor = Surface
@@ -229,13 +232,13 @@ private fun MonthYearHeader(
         IconButton(onClick = onPreviousMonth) {
             Icon(
                 imageVector = Icons.Default.ChevronLeft,
-                contentDescription = "Previous month",
+                contentDescription = DatePickerLabels.PREVIOUS_MONTH,
                 tint = Primary
             )
         }
 
         Text(
-            text = yearMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+            text = yearMonth.format(DateTimeFormatter.ofPattern(DATE_FORMAT_MONTH_YEAR)),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.weight(1f),
@@ -246,7 +249,7 @@ private fun MonthYearHeader(
         IconButton(onClick = onNextMonth) {
             Icon(
                 imageVector = Icons.Default.ChevronRight,
-                contentDescription = "Next month",
+                contentDescription = DatePickerLabels.NEXT_MONTH,
                 tint = Primary
             )
         }
@@ -265,7 +268,7 @@ private fun CalendarGrid(
     val firstDay = yearMonth.atDay(1)
     val lastDay = yearMonth.atEndOfMonth()
     val daysInMonth = lastDay.dayOfMonth
-    val firstDayOfWeek = firstDay.dayOfWeek.value % 7 // 0 = Sunday, 6 = Saturday
+    val firstDayOfWeek = firstDay.dayOfWeek.value % FIRST_DAY_OF_WEEK_ADJUSTMENT
 
     val dayList = mutableListOf<LocalDate?>()
 
@@ -284,10 +287,18 @@ private fun CalendarGrid(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 8.dp),
+                .padding(bottom = CALENDAR_GRID_PADDING_BOTTOM),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat").forEach { day ->
+            listOf(
+                DatePickerDefaults.DAYS_HEADER_SUN,
+                DatePickerDefaults.DAYS_HEADER_MON,
+                DatePickerDefaults.DAYS_HEADER_TUE,
+                DatePickerDefaults.DAYS_HEADER_WED,
+                DatePickerDefaults.DAYS_HEADER_THU,
+                DatePickerDefaults.DAYS_HEADER_FRI,
+                DatePickerDefaults.DAYS_HEADER_SAT
+            ).forEach { day ->
                 Text(
                     text = day,
                     style = MaterialTheme.typography.labelSmall,
@@ -296,7 +307,7 @@ private fun CalendarGrid(
                     textAlign = TextAlign.Center,
                     modifier = Modifier
                         .weight(1f)
-                        .padding(4.dp),
+                        .padding(CALENDAR_DAY_PADDING),
                     fontSize = TEXT_SIZE_SMALL
                 )
             }
@@ -304,7 +315,7 @@ private fun CalendarGrid(
 
         // Calendar days grid
         LazyVerticalGrid(
-            columns = GridCells.Fixed(7),
+            columns = GridCells.Fixed(CALENDAR_GRID_FIXED_COLUMNS),
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(PADDING_EXTRA_SMALL),
             verticalArrangement = Arrangement.spacedBy(PADDING_EXTRA_SMALL)
@@ -318,7 +329,7 @@ private fun CalendarGrid(
                         onClick = { onDateSelected(date) }
                     )
                 } else {
-                    Spacer(modifier = Modifier.size(36.dp))
+                    Spacer(modifier = Modifier.size(CALENDAR_DAY_CIRCLE_SIZE))
                 }
             }
         }
@@ -376,7 +387,7 @@ fun QuickDateRangeSelector(
 
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
-            text = "Quick Select",
+            text = DatePickerLabels.QUICK_SELECT,
             style = MaterialTheme.typography.labelMedium,
             color = TextSecondary,
             fontWeight = FontWeight.Bold
@@ -386,10 +397,10 @@ fun QuickDateRangeSelector(
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(PADDING_EXTRA_SMALL)
         ) {
             QuickDateButton(
-                label = "Today",
+                label = DatePickerLabels.TODAY,
                 startDate = today,
                 endDate = today,
                 onRangeSelected = onRangeSelected,
@@ -397,7 +408,7 @@ fun QuickDateRangeSelector(
             )
 
             QuickDateButton(
-                label = "7 Days",
+                label = DatePickerLabels.SEVEN_DAYS,
                 startDate = today.minusDays(7),
                 endDate = today,
                 onRangeSelected = onRangeSelected,
@@ -405,7 +416,7 @@ fun QuickDateRangeSelector(
             )
 
             QuickDateButton(
-                label = "30 Days",
+                label = DatePickerLabels.THIRTY_DAYS,
                 startDate = today.minusDays(30),
                 endDate = today,
                 onRangeSelected = onRangeSelected,
@@ -417,10 +428,10 @@ fun QuickDateRangeSelector(
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(PADDING_EXTRA_SMALL)
         ) {
             QuickDateButton(
-                label = "This Month",
+                label = DatePickerLabels.THIS_MONTH,
                 startDate = today.withDayOfMonth(1),
                 endDate = today,
                 onRangeSelected = onRangeSelected,
@@ -428,7 +439,7 @@ fun QuickDateRangeSelector(
             )
 
             QuickDateButton(
-                label = "Last Month",
+                label = DatePickerLabels.LAST_MONTH,
                 startDate = today.minusMonths(1).withDayOfMonth(1),
                 endDate = today.minusMonths(1).withDayOfMonth(
                     today.minusMonths(1).lengthOfMonth()
@@ -438,8 +449,12 @@ fun QuickDateRangeSelector(
             )
 
             QuickDateButton(
-                label = "All Time",
-                startDate = LocalDate.of(2020, 1, 1),
+                label = DatePickerLabels.ALL_TIME,
+                startDate = LocalDate.of(
+                    DatePickerDefaults.ALL_TIME_START_YEAR,
+                    DatePickerDefaults.ALL_TIME_START_MONTH,
+                    DatePickerDefaults.ALL_TIME_START_DAY
+                ),
                 endDate = today,
                 onRangeSelected = onRangeSelected,
                 modifier = Modifier.weight(1f)
@@ -461,11 +476,11 @@ private fun QuickDateButton(
 ) {
     Button(
         onClick = { onRangeSelected(startDate, endDate) },
-        modifier = modifier.height(36.dp),
+        modifier = modifier.height(DATE_PICKER_QUICK_BUTTON_HEIGHT),
         colors = ButtonDefaults.buttonColors(
             containerColor = SurfaceVariant
         ),
-        shape = RoundedCornerShape(8.dp)
+        shape = RoundedCornerShape(CORNER_RADIUS_MEDIUM)
     ) {
         Text(
             text = label,

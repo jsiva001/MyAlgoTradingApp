@@ -52,6 +52,7 @@ const val DEFAULT_BUILD_NUMBER = "100"
 const val DEFAULT_LAST_UPDATED = ""
 const val DEFAULT_SEARCH_QUERY = ""
 const val DEFAULT_SELECTED_TAB = "ALL"
+const val DEFAULT_SEARCH_PLACEHOLDER = "Search..."
 
 // ============ FILTER TYPES ============
 const val POSITION_FILTER_LONG = "LONG"
@@ -359,4 +360,41 @@ object ExitReasonLabels {
     const val MANUAL_EXIT = "Manual Exit"
     const val EMERGENCY_EXIT = "Emergency Stop"
     const val CIRCUIT_BREAKER = "Circuit Breaker"
+}
+
+// ============ DATE PICKER COMPONENTS ============
+const val DATE_FORMAT_DISPLAY = "dd/MM/yyyy"
+const val DATE_FORMAT_SELECTED = "EEEE, dd MMMM yyyy"
+const val DATE_FORMAT_MONTH_YEAR = "MMMM yyyy"
+
+object DatePickerLabels {
+    const val SELECT_DATE = "Select Date"
+    const val APPLY_DATES = "Apply Dates"
+    const val CONFIRM = "OK"
+    const val CANCEL = "Cancel"
+    const val START_DATE = "Start Date"
+    const val END_DATE = "End Date"
+    const val SELECT_DATE_ICON = "Select date"
+    const val PREVIOUS_MONTH = "Previous month"
+    const val NEXT_MONTH = "Next month"
+    const val QUICK_SELECT = "Quick Select"
+    const val TODAY = "Today"
+    const val SEVEN_DAYS = "7 Days"
+    const val THIRTY_DAYS = "30 Days"
+    const val THIS_MONTH = "This Month"
+    const val LAST_MONTH = "Last Month"
+    const val ALL_TIME = "All Time"
+}
+
+object DatePickerDefaults {
+    const val DAYS_HEADER_SUN = "Sun"
+    const val DAYS_HEADER_MON = "Mon"
+    const val DAYS_HEADER_TUE = "Tue"
+    const val DAYS_HEADER_WED = "Wed"
+    const val DAYS_HEADER_THU = "Thu"
+    const val DAYS_HEADER_FRI = "Fri"
+    const val DAYS_HEADER_SAT = "Sat"
+    const val ALL_TIME_START_YEAR = 2020
+    const val ALL_TIME_START_MONTH = 1
+    const val ALL_TIME_START_DAY = 1
 }
