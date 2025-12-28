@@ -7,6 +7,7 @@ import com.trading.orb.data.engine.mock.MockMarketDataSource
 import com.trading.orb.data.engine.mock.MockOrderExecutor
 import com.trading.orb.data.repository.TradingRepository
 import com.trading.orb.data.repository.TradingRepositoryImpl
+import com.trading.orb.ui.utils.*
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -18,7 +19,6 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 import javax.inject.Named
-import javax.inject.Qualifier
 import javax.inject.Singleton
 import timber.log.Timber
 
@@ -43,9 +43,9 @@ object AppModule {
 
         return OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .writeTimeout(30, TimeUnit.SECONDS)
+            .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .readTimeout(READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .writeTimeout(WRITE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .build()
     }
 
@@ -53,7 +53,7 @@ object AppModule {
     @Singleton
     fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
         return Retrofit.Builder()
-            .baseUrl("https://your-backend-api.com/") // Replace with actual URL
+            .baseUrl(BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
@@ -73,17 +73,16 @@ object AppModule {
             return if (useMock) {
                 Timber.d("🧪 [DEBUG] Using MOCK Market Data Source - Easy testing mode!")
                 MockMarketDataSource(
-                    basePrice = 185.0,
-                    volatility = 0.5,
-                    updateIntervalMs = 1000
+                    basePrice = DEFAULT_BASE_PRICE,
+                    volatility = DEFAULT_VOLATILITY,
+                    updateIntervalMs = DEFAULT_UPDATE_INTERVAL_MS
                 )
             } else {
-                // Real implementation will be added when Angel API is integrated
                 Timber.w("⚠️ [RELEASE] Real Market Data Source not yet implemented")
                 MockMarketDataSource(
-                    basePrice = 185.0,
-                    volatility = 0.5,
-                    updateIntervalMs = 1000
+                    basePrice = DEFAULT_BASE_PRICE,
+                    volatility = DEFAULT_VOLATILITY,
+                    updateIntervalMs = DEFAULT_UPDATE_INTERVAL_MS
                 )
             }
         }
@@ -96,15 +95,14 @@ object AppModule {
             return if (useMock) {
                 Timber.d("🧪 [DEBUG] Using MOCK Order Executor - Easy testing mode!")
                 MockOrderExecutor(
-                    executionDelayMs = 500,
-                    failureRate = 0
+                    executionDelayMs = DEFAULT_EXECUTION_DELAY_MS,
+                    failureRate = DEFAULT_FAILURE_RATE
                 )
             } else {
-                // Real implementation will be added when Angel API is integrated
                 Timber.w("⚠️ [RELEASE] Real Order Executor not yet implemented")
                 MockOrderExecutor(
-                    executionDelayMs = 500,
-                    failureRate = 0
+                    executionDelayMs = DEFAULT_EXECUTION_DELAY_MS,
+                    failureRate = DEFAULT_FAILURE_RATE
                 )
             }
         }

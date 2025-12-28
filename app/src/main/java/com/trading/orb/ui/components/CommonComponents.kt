@@ -119,14 +119,14 @@ fun PnLDisplay(
         horizontalAlignment = Alignment.End
     ) {
         Text(
-            text = "$sign₹${String.format("%.2f", pnl)}",
+            text = "$sign₹${String.format(PNL_DISPLAY_DECIMAL_FORMAT, pnl)}",
             style = MaterialTheme.typography.displayMedium.copy(fontSize = fontSize.sp),
             color = color,
             fontWeight = FontWeight.Bold
         )
         if (percentage != null) {
             Text(
-                text = "$sign${String.format("%.2f", percentage)}%",
+                text = "$sign${String.format(PNL_DISPLAY_DECIMAL_FORMAT, percentage)}%",
                 style = MaterialTheme.typography.bodySmall,
                 color = color
             )
@@ -145,12 +145,12 @@ fun ConnectionIndicator(
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+        horizontalArrangement = Arrangement.spacedBy(CONNECTION_INDICATOR_SPACING_DP.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(8.dp)
-                .clip(RoundedCornerShape(4.dp))
+                .size(CONNECTION_INDICATOR_DOT_SIZE_DP.dp)
+                .clip(RoundedCornerShape(CONNECTION_INDICATOR_RADIUS_DP.dp))
                 .background(
                     when (status) {
                         ConnectionStatus.CONNECTED -> Success
@@ -161,10 +161,10 @@ fun ConnectionIndicator(
         )
         Text(
             text = when (status) {
-                ConnectionStatus.CONNECTED -> "Connected"
-                ConnectionStatus.CONNECTING -> "Connecting"
-                ConnectionStatus.DISCONNECTED -> "Disconnected"
-                ConnectionStatus.ERROR -> "Error"
+                ConnectionStatus.CONNECTED -> ConnectionLabels.CONNECTED
+                ConnectionStatus.CONNECTING -> ConnectionLabels.CONNECTING
+                ConnectionStatus.DISCONNECTED -> ConnectionLabels.DISCONNECTED
+                ConnectionStatus.ERROR -> ConnectionLabels.ERROR
             },
             style = MaterialTheme.typography.labelSmall,
             color = TextSecondary
@@ -233,7 +233,7 @@ fun LabeledProgressBar(
                 color = TextPrimary
             )
             Text(
-                text = "₹${String.format("%.0f", current)} / ₹${String.format("%.0f", max)}",
+                text = "₹${String.format(CURRENCY_DECIMAL_FORMAT, current)} / ₹${String.format(CURRENCY_DECIMAL_FORMAT, max)}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextPrimary,
                 fontWeight = FontWeight.Bold
@@ -244,7 +244,7 @@ fun LabeledProgressBar(
             progress = { (current / max).toFloat().coerceIn(0f, 1f) },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(PADDING_SMALL)
+                .height(PROGRESS_BAR_HEIGHT_DP.dp)
                 .clip(RoundedCornerShape(CORNER_RADIUS_SMALL)),
             color = color,
             trackColor = SurfaceVariant
@@ -261,13 +261,13 @@ fun ExitReasonBadge(
     modifier: Modifier = Modifier
 ) {
     val (icon, color, text) = when (reason) {
-        ExitReason.TARGET_HIT -> Triple(Icons.Default.CheckCircle, Success, "Target Hit")
-        ExitReason.SL_HIT -> Triple(Icons.Default.Warning, Error, "SL Hit")
-        ExitReason.TIME_EXIT -> Triple(Icons.Default.AccessTime, Primary, "Time Exit")
-        ExitReason.MANUAL -> Triple(Icons.Default.TouchApp, Warning, "Manual")
-        ExitReason.MANUAL_EXIT -> Triple(Icons.Default.TouchApp, Warning, "Manual Exit")
-        ExitReason.EMERGENCY_EXIT -> Triple(Icons.Default.PowerSettingsNew, Error, "Emergency Stop")
-        ExitReason.CIRCUIT_BREAKER -> Triple(Icons.Default.Block, Error, "Circuit Breaker")
+        ExitReason.TARGET_HIT -> Triple(Icons.Default.CheckCircle, Success, ExitReasonLabels.TARGET_HIT)
+        ExitReason.SL_HIT -> Triple(Icons.Default.Warning, Error, ExitReasonLabels.SL_HIT)
+        ExitReason.TIME_EXIT -> Triple(Icons.Default.AccessTime, Primary, ExitReasonLabels.TIME_EXIT)
+        ExitReason.MANUAL -> Triple(Icons.Default.TouchApp, Warning, ExitReasonLabels.MANUAL)
+        ExitReason.MANUAL_EXIT -> Triple(Icons.Default.TouchApp, Warning, ExitReasonLabels.MANUAL_EXIT)
+        ExitReason.EMERGENCY_EXIT -> Triple(Icons.Default.PowerSettingsNew, Error, ExitReasonLabels.EMERGENCY_EXIT)
+        ExitReason.CIRCUIT_BREAKER -> Triple(Icons.Default.Block, Error, ExitReasonLabels.CIRCUIT_BREAKER)
     }
 
     Box(
@@ -382,12 +382,12 @@ fun StatCard(
  */
 @Composable
 fun RiskThresholdProgressBar(
+    modifier: Modifier = Modifier,
     label: String,
     current: Double,
     max: Double,
     warningThreshold: Double = 50.0,
     criticalThreshold: Double = 80.0,
-    modifier: Modifier = Modifier,
     overrideColor: Color? = null
 ) {
     val percentage = if (max > 0) (current / max) * 100 else 0.0
@@ -411,9 +411,9 @@ fun RiskThresholdProgressBar(
  * Time formatter utilities
  */
 object TimeFormatter {
-    private val timeFormatter = DateTimeFormatter.ofPattern("hh:mm a")
-    private val dateFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy")
-    private val dateTimeFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy • hh:mm a")
+    private val timeFormatter = java.time.format.DateTimeFormatter.ofPattern(TimeFormats.TIME_PATTERN)
+    private val dateFormatter = java.time.format.DateTimeFormatter.ofPattern(TimeFormats.DATE_PATTERN)
+    private val dateTimeFormatter = java.time.format.DateTimeFormatter.ofPattern(TimeFormats.DATE_TIME_PATTERN)
 
     fun formatTime(dateTime: java.time.LocalDateTime): String {
         return dateTime.format(timeFormatter)

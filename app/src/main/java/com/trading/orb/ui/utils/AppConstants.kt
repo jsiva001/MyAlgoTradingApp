@@ -310,3 +310,53 @@ const val MOCK_ORB_END_HOUR = 23
 const val MOCK_ORB_END_MINUTE = 59
 const val MOCK_AUTO_EXIT_HOUR = 23
 const val MOCK_AUTO_EXIT_MINUTE = 50
+
+// ============ NETWORK CONFIGURATION ============
+const val BASE_URL = "https://your-backend-api.com/"
+const val CONNECT_TIMEOUT_SECONDS = 30L
+const val READ_TIMEOUT_SECONDS = 30L
+const val WRITE_TIMEOUT_SECONDS = 30L
+const val HTTP_LOGGING_LEVEL = "BODY"
+
+// ============ MARKET DATA SOURCE DEFAULTS ============
+const val DEFAULT_BASE_PRICE = 185.0
+const val DEFAULT_VOLATILITY = 0.5
+const val DEFAULT_UPDATE_INTERVAL_MS = 1000L
+
+// ============ ORDER EXECUTOR DEFAULTS ============
+const val DEFAULT_EXECUTION_DELAY_MS = 500L
+const val DEFAULT_FAILURE_RATE = 0
+
+// ============ UI COMPONENT FORMATTING ============
+const val CONNECTION_INDICATOR_DOT_SIZE_DP = 8
+const val CONNECTION_INDICATOR_RADIUS_DP = 4
+const val CONNECTION_INDICATOR_SPACING_DP = 4
+const val PNL_DISPLAY_DECIMAL_FORMAT = "%.2f"
+const val CURRENCY_DECIMAL_FORMAT = "%.0f"
+const val PROGRESS_BAR_HEIGHT_DP = 4
+
+// ============ TEXT FORMATTING ============
+object TimeFormats {
+    const val TIME_PATTERN = "hh:mm a"
+    const val DATE_PATTERN = "dd MMM yyyy"
+    const val DATE_TIME_PATTERN = "dd MMM yyyy • hh:mm a"
+}
+
+// ============ CONNECTION STATUS LABELS ============
+object ConnectionLabels {
+    const val CONNECTED = "Connected"
+    const val CONNECTING = "Connecting"
+    const val DISCONNECTED = "Disconnected"
+    const val ERROR = "Error"
+}
+
+// ============ EXIT REASON LABELS ============
+object ExitReasonLabels {
+    const val TARGET_HIT = "Target Hit"
+    const val SL_HIT = "SL Hit"
+    const val TIME_EXIT = "Time Exit"
+    const val MANUAL = "Manual"
+    const val MANUAL_EXIT = "Manual Exit"
+    const val EMERGENCY_EXIT = "Emergency Stop"
+    const val CIRCUIT_BREAKER = "Circuit Breaker"
+}
