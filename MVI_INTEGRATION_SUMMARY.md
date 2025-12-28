@@ -280,6 +280,7 @@ fun YourScreen(viewModel: YourViewModel = hiltViewModel()) {
 ## 🔄 Git Commit History
 
 ```
+commit 167c685 - refactor: migrate DialogComponents hardcoded values to AppConstants and Dimensions
 commit 6249fab - chore: migrate CommonComponents hardcoded values to AppConstants
 commit xxxxxxx - feat: complete MVI integration for all screens
 commit xxxxxxx - feat: implement Phase 3 remaining screens (Risk, Strategy Config)
@@ -289,7 +290,42 @@ commit xxxxxxx - feat: establish MVI base architecture
 
 ---
 
-## ✨ Summary
+## 🎨 Phase 4: UI Component Refactoring (IN PROGRESS)
+
+### Hardcoded Value Migration to Constants
+
+#### ✅ DialogComponents.kt - COMPLETED
+- **Strings Migrated:** All dialog labels, button texts, messages
+- **Constants Added:** `DialogStrings` object in AppConstants.kt
+  - MODE_LABEL, CONFIRM_BUTTON, DISMISS_BUTTON, RETRY_BUTTON
+  - SUCCESS_TITLE, LOADING_MESSAGE, AUTO_CLOSING_MESSAGE, ERROR_CODE_PREFIX
+- **Dimensions Migrated:** All dp values to Dimensions.kt
+  - DIALOG_ICON_SIZE (48.dp)
+  - DIALOG_LARGE_ICON_SIZE (64.dp)
+  - DIALOG_ICON_BOX_CORNER_RADIUS (12.dp)
+  - DIALOG_LARGE_ICON_BOX_CORNER_RADIUS (16.dp)
+  - DIALOG_BUTTON_CORNER_RADIUS (8.dp)
+  - DIALOG_BUTTON_HEIGHT (40.dp)
+  - DIALOG_PROGRESS_INDICATOR_SIZE (48.dp)
+  - DIALOG_PROGRESS_STROKE_WIDTH (4.dp)
+  - DIALOG_CONTENT_PADDING (16.dp)
+
+**Components Updated:**
+- OrbDialog (base dialog)
+- DialogHeader (header styling)
+- ConfirmationDialog (with danger mode)
+- InfoDialog (with custom icons)
+- ErrorDialog (with error codes)
+- LoadingDialog (with progress indicator)
+- SuccessDialog (with auto-close)
+
+#### 📋 Remaining Components:
+- DatePickerComponents.kt (partial)
+- TimerComponents.kt
+- TopBar.kt
+- CommonComponents.kt
+
+---
 
 The MyAlgoTradeApp has been successfully migrated to MVI (Model-View-Intent) architecture with a hybrid approach that leverages MVVM patterns. All hardcoded values have been centralized, code quality checks (Lint, Detekt) are passing, and the project builds successfully.
 
