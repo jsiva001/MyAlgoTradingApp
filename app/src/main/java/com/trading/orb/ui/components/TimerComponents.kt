@@ -25,6 +25,7 @@ import com.trading.orb.ui.utils.PADDING_EXTRA_SMALL
 import com.trading.orb.ui.utils.TEXT_SIZE_HEADING
 import com.trading.orb.ui.utils.TEXT_SIZE_SMALL
 import com.trading.orb.ui.utils.TimePickerDialog
+import com.trading.orb.ui.utils.DEFAULT_DELAY_MS
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
@@ -57,7 +58,7 @@ fun CountdownTimer(
                 onTimeUp()
             }
 
-            kotlinx.coroutines.delay(1000)
+            kotlinx.coroutines.delay(DEFAULT_DELAY_MS)
         }
     }
 
@@ -189,7 +190,7 @@ fun TradingHoursTimer(
             }
 
             remainingSeconds = remaining.coerceAtLeast(0)
-            kotlinx.coroutines.delay(1000)
+            kotlinx.coroutines.delay(DEFAULT_DELAY_MS)
         }
     }
 

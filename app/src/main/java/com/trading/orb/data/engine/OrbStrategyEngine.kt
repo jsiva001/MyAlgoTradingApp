@@ -2,6 +2,9 @@ package com.trading.orb.data.engine
 
 import com.trading.orb.data.model.*
 import com.trading.orb.ui.utils.TimberLogs
+import com.trading.orb.ui.utils.ORB_ENTRY_TAG
+import com.trading.orb.ui.utils.ORDER_FAILED_MESSAGE
+import com.trading.orb.ui.utils.DEFAULT_DELAY_MS
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import timber.log.Timber
@@ -167,10 +170,10 @@ class OrbStrategyEngine(
 
         val result = when (config.orderType) {
             OrderType.MARKET -> orderExecutor.placeMarketOrder(
-                config.instrument.symbol, side, config.lotSize, "ORB_ENTRY"
+                config.instrument.symbol, side, config.lotSize, ORB_ENTRY_TAG
             )
             OrderType.LIMIT -> orderExecutor.placeLimitOrder(
-                config.instrument.symbol, side, config.lotSize, price, "ORB_ENTRY"
+                config.instrument.symbol, side, config.lotSize, price, ORB_ENTRY_TAG
             )
         }
 
@@ -194,7 +197,7 @@ class OrbStrategyEngine(
         }
 
         result.onFailure { error ->
-            _events.emit(StrategyEvent.OrderFailed(error.message ?: "Order failed"))
+            _events.emit(StrategyEvent.OrderFailed(error.message ?: ORDER_FAILED_MESSAGE))
         }
     }
 
@@ -275,7 +278,7 @@ class OrbStrategyEngine(
 
     private suspend fun waitUntilTime(targetTime: LocalTime) {
         while (LocalTime.now() < targetTime && isRunning) {
-            delay(1000)
+            delay(DEFAULT_DELAY_MS)
         }
     }
 

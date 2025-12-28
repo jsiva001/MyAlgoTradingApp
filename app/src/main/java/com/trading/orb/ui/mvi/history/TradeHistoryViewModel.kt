@@ -9,6 +9,7 @@ import com.trading.orb.ui.state.TradeHistoryUiModel
 import com.trading.orb.ui.utils.EXPORT_DIRECTORY
 import com.trading.orb.ui.utils.TimberLogs
 import com.trading.orb.ui.utils.ErrorMessages
+import com.trading.orb.ui.utils.DEFAULT_DELAY_MS
 import com.trading.orb.ui.utils.TRADE_FILTER_ALL
 import com.trading.orb.ui.utils.TRADE_FILTER_PROFIT
 import com.trading.orb.ui.utils.TRADE_FILTER_LOSS
@@ -200,7 +201,7 @@ class TradeHistoryViewModel @Inject constructor(
             )
 
             // Simulate export delay
-            kotlinx.coroutines.delay(1000)
+            kotlinx.coroutines.delay(DEFAULT_DELAY_MS)
 
             updateStateImmediate(
                 state.value.copy(loading = LoadingState(isLoading = false))

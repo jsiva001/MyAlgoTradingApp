@@ -11,6 +11,7 @@ import com.trading.orb.ui.state.AdvancedSettingsUiModel
 import com.trading.orb.ui.utils.*
 import com.trading.orb.ui.utils.TimberLogs
 import com.trading.orb.ui.utils.ErrorMessages
+import com.trading.orb.ui.utils.DEFAULT_DELAY_MS
 import com.trading.orb.ui.utils.STRATEGY_CONFIG_EXPORT_FORMAT
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
@@ -267,7 +268,7 @@ class StrategyConfigurationViewModel @Inject constructor(
             )
 
             // Simulate export delay
-            kotlinx.coroutines.delay(1000)
+            kotlinx.coroutines.delay(DEFAULT_DELAY_MS)
 
             updateStateImmediate(
                 state.value.copy(loading = LoadingState(isLoading = false))

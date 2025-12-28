@@ -10,6 +10,7 @@ import com.trading.orb.ui.state.RiskLimitsUiModel
 import com.trading.orb.ui.state.RiskAlertUiModel
 import com.trading.orb.ui.utils.TimberLogs
 import com.trading.orb.ui.utils.ErrorMessages
+import com.trading.orb.ui.utils.DEFAULT_DELAY_MS
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -230,7 +231,7 @@ class RiskManagementViewModel @Inject constructor(
             )
 
             // Simulate exposure reduction
-            kotlinx.coroutines.delay(1000)
+            kotlinx.coroutines.delay(DEFAULT_DELAY_MS)
 
             updateStateImmediate(
                 state.value.copy(loading = LoadingState(isLoading = false))

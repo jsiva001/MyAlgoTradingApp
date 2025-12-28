@@ -9,6 +9,7 @@ import com.trading.orb.ui.state.UserSettingsUiModel
 import com.trading.orb.ui.state.AboutInfoUiModel
 import com.trading.orb.ui.utils.TimberLogs
 import com.trading.orb.ui.utils.ErrorMessages
+import com.trading.orb.ui.utils.DEFAULT_DELAY_MS
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -285,7 +286,7 @@ class MoreViewModel @Inject constructor(
         try {
             emitEffect(MoreScreenEffect.ShowCacheDialog)
             // Actual cache clearing would be done here
-            kotlinx.coroutines.delay(1000)
+            kotlinx.coroutines.delay(DEFAULT_DELAY_MS)
             emitEffect(MoreScreenEffect.ShowSuccess("Cache cleared successfully"))
             emitEffect(MoreScreenEffect.LogEvent("cache_cleared"))
         } catch (e: Exception) {

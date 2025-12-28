@@ -275,3 +275,8 @@ object DashboardEffectMessages {
 // ============ DASHBOARD DATA LOADING ============
 const val DASHBOARD_DATA_LOAD_DELAY_MS = 500L
 const val DASHBOARD_REFRESH_DELAY_MS = 1000L
+const val DEFAULT_DELAY_MS = 1000L
+
+// ============ ORB STRATEGY ENGINE CONSTANTS ============
+const val ORB_ENTRY_TAG = "ORB_ENTRY"
+const val ORDER_FAILED_MESSAGE = "Order failed"
