@@ -24,10 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.trading.orb.data.model.TradingMode
 import com.trading.orb.ui.theme.*
-import com.trading.orb.ui.utils.ICON_SIZE_LARGE
-import com.trading.orb.ui.utils.PADDING_EXTRA_SMALL
-import com.trading.orb.ui.utils.PADDING_SMALL
-import com.trading.orb.ui.utils.TEXT_SIZE_SMALL
+import com.trading.orb.ui.utils.*
 
 // ============ DIALOG TEMPLATES ============
 
@@ -85,10 +82,10 @@ private fun DialogHeader(
     ) {
         Box(
             modifier = Modifier
-                .size(48.dp)
+                .size(DIALOG_ICON_SIZE)
                 .background(
                     color = modeColor.copy(alpha = 0.2f),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(DIALOG_ICON_BOX_CORNER_RADIUS)
                 ),
             contentAlignment = Alignment.Center
         ) {
@@ -100,7 +97,7 @@ private fun DialogHeader(
             )
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(DIALOG_ICON_BOX_SPACING))
 
         Text(
             text = title,
@@ -113,7 +110,7 @@ private fun DialogHeader(
         Spacer(modifier = Modifier.height(PADDING_EXTRA_SMALL))
 
         Text(
-            text = "Mode: ${tradingMode.name}",
+            text = "${DialogStrings.MODE_LABEL}: ${tradingMode.name}",
             style = MaterialTheme.typography.labelSmall,
             color = TextSecondary,
             fontSize = TEXT_SIZE_SMALL
@@ -162,7 +159,7 @@ fun ConfirmationDialog(
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (isDangerous) Error else Primary
                     ),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(DIALOG_BUTTON_CORNER_RADIUS)
                 ) {
                     Text(
                         text = confirmText,
@@ -174,7 +171,7 @@ fun ConfirmationDialog(
             dismissButton = {
                 TextButton(
                     onClick = onCancel,
-                    modifier = Modifier.height(40.dp)
+                    modifier = Modifier.height(DIALOG_BUTTON_HEIGHT)
                 ) {
                     Text(
                         text = cancelText,
@@ -219,10 +216,10 @@ fun InfoDialog(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(48.dp)
+                            .size(DIALOG_ICON_SIZE)
                             .background(
                                 color = Primary.copy(alpha = 0.1f),
-                                shape = RoundedCornerShape(12.dp)
+                                shape = RoundedCornerShape(DIALOG_ICON_BOX_CORNER_RADIUS)
                             ),
                         contentAlignment = Alignment.Center
                     ) {
@@ -234,7 +231,7 @@ fun InfoDialog(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(DIALOG_ICON_BOX_SPACING))
 
                     Text(
                         text = message,
@@ -249,7 +246,7 @@ fun InfoDialog(
                 Button(
                     onClick = onDismiss,
                     colors = ButtonDefaults.buttonColors(containerColor = Primary),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(DIALOG_BUTTON_CORNER_RADIUS)
                 ) {
                     Text(
                         text = buttonText,
@@ -323,7 +320,7 @@ fun ErrorDialog(
                     if (errorCode != null) {
                         Spacer(modifier = Modifier.height(PADDING_SMALL))
                         Text(
-                            text = "Error Code: $errorCode",
+                            text = "${DialogStrings.ERROR_CODE_PREFIX}: $errorCode",
                             style = MaterialTheme.typography.labelSmall,
                             color = TextTertiary,
                             textAlign = TextAlign.Center,
@@ -337,24 +334,24 @@ fun ErrorDialog(
                     Button(
                         onClick = onRetry,
                         colors = ButtonDefaults.buttonColors(containerColor = Error),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(DIALOG_BUTTON_CORNER_RADIUS)
                     ) {
-                        Text("Retry", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Text(DialogMessages.RETRY_BUTTON, color = Color.White, fontWeight = FontWeight.SemiBold)
                     }
                 } else {
                     Button(
                         onClick = onDismiss,
                         colors = ButtonDefaults.buttonColors(containerColor = Error),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(DIALOG_BUTTON_CORNER_RADIUS)
                     ) {
-                        Text("OK", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Text(DialogMessages.OK, color = Color.White, fontWeight = FontWeight.SemiBold)
                     }
                 }
             },
             dismissButton = {
                 if (showRetry) {
                     TextButton(onClick = onDismiss) {
-                        Text("Dismiss", color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                        Text(DialogStrings.DISMISS_BUTTON, color = TextPrimary, fontWeight = FontWeight.SemiBold)
                     }
                 }
             },
@@ -379,21 +376,21 @@ fun LoadingDialog(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(DIALOG_CONTENT_PADDING),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(48.dp),
+                        modifier = Modifier.size(DIALOG_PROGRESS_INDICATOR_SIZE),
                         color = if (tradingMode == TradingMode.PAPER) {
                             PaperPrimary
                         } else {
                             LivePrimary
                         },
-                        strokeWidth = 4.dp
+                        strokeWidth = DIALOG_PROGRESS_STROKE_WIDTH
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(PADDING_STANDARD))
 
                     Text(
                         text = message,
@@ -414,7 +411,7 @@ fun LoadingDialog(
 @Composable
 fun SuccessDialog(
     isVisible: Boolean,
-    title: String = "Success",
+    title: String = DialogStrings.SUCCESS_TITLE,
     message: String,
     autoCloseMs: Long? = 2000,
     onDismiss: () -> Unit = {},
@@ -444,10 +441,10 @@ fun SuccessDialog(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(64.dp)
+                            .size(DIALOG_LARGE_ICON_SIZE)
                             .background(
                                 color = Success.copy(alpha = 0.1f),
-                                shape = RoundedCornerShape(16.dp)
+                                shape = RoundedCornerShape(DIALOG_LARGE_ICON_BOX_CORNER_RADIUS)
                             ),
                         contentAlignment = Alignment.Center
                     ) {
@@ -459,7 +456,7 @@ fun SuccessDialog(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(DIALOG_ICON_BOX_SPACING))
 
                     Text(
                         text = message,
@@ -472,7 +469,7 @@ fun SuccessDialog(
                     if (autoCloseMs != null) {
                         Spacer(modifier = Modifier.height(PADDING_SMALL))
                         Text(
-                            text = "Auto closing...",
+                            text = DialogStrings.AUTO_CLOSING_MESSAGE,
                             style = MaterialTheme.typography.labelSmall,
                             color = TextTertiary,
                             textAlign = TextAlign.Center,
@@ -485,9 +482,9 @@ fun SuccessDialog(
                 Button(
                     onClick = { onDismiss(); onClose() },
                     colors = ButtonDefaults.buttonColors(containerColor = Success),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(DIALOG_BUTTON_CORNER_RADIUS)
                 ) {
-                    Text("OK", color = Color.White, fontWeight = FontWeight.SemiBold)
+                    Text(DialogMessages.OK, color = Color.White, fontWeight = FontWeight.SemiBold)
                 }
             },
             containerColor = Surface

@@ -43,6 +43,7 @@ object DialogMessages {
     const val OK = "OK"
     const val ERROR = "Error"
     const val CANCEL = "Cancel"
+    const val RETRY_BUTTON = "Retry"
 }
 
 // ============ DEFAULT UI VALUES ============
@@ -397,4 +398,16 @@ object DatePickerDefaults {
     const val ALL_TIME_START_YEAR = 2020
     const val ALL_TIME_START_MONTH = 1
     const val ALL_TIME_START_DAY = 1
+}
+
+// ============ DIALOG COMPONENTS ============
+object DialogStrings {
+    const val MODE_LABEL = "Mode"
+    const val CONFIRM_BUTTON = "Confirm"
+    const val DISMISS_BUTTON = "Dismiss"
+    const val RETRY_BUTTON = "Retry"
+    const val SUCCESS_TITLE = "Success"
+    const val LOADING_MESSAGE = "Loading..."
+    const val AUTO_CLOSING_MESSAGE = "Auto closing..."
+    const val ERROR_CODE_PREFIX = "Error Code"
 }
