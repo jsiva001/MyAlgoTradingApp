@@ -239,6 +239,26 @@ object TimberLogs {
     const val CONFIG_FAILED_APPLY_DEFAULTS = "Failed to apply defaults"
     const val CONFIG_FAILED_EXPORT = "Failed to export configuration"
     
+    // Trading Repository
+    const val STRATEGY_STARTED_SUCCESSFULLY = "Strategy started successfully"
+    const val FAILED_START_STRATEGY = "Failed to start strategy"
+    const val STRATEGY_STOPPED_SUCCESSFULLY = "Strategy stopped successfully"
+    const val FAILED_STOP_STRATEGY = "Failed to stop strategy"
+    const val TRADING_MODE_TOGGLED = "Trading mode toggled to: %s"
+    const val FAILED_TOGGLE_TRADING_MODE = "Failed to toggle trading mode"
+    const val STRATEGY_PAUSED = "Strategy paused"
+    const val FAILED_PAUSE_STRATEGY = "Failed to pause strategy"
+    const val ALL_POSITIONS_CLOSED = "All positions closed"
+    const val FAILED_CLOSE_ALL_POSITIONS = "Failed to close all positions"
+    const val STRATEGY_CONFIG_UPDATED = "Strategy configuration updated"
+    const val FAILED_UPDATE_STRATEGY_CONFIG = "Failed to update strategy configuration"
+    const val RISK_SETTINGS_UPDATED = "Risk settings updated"
+    const val FAILED_UPDATE_RISK_SETTINGS = "Failed to update risk settings"
+    const val APP_STATE_UPDATED = "App state updated with %d active positions and %d closed trades"
+    const val FAILED_UPDATE_APP_STATE = "Failed to update app state"
+    const val TRADE_HISTORY_FETCHED = "Trade history fetched with filter: %s"
+    const val FAILED_FETCH_TRADE_HISTORY = "Failed to fetch trade history"
+    
     // Live Logs ViewModel
     const val LOGS_FAILED_LOAD = "Failed to load logs"
     const val LOGS_FAILED_REFRESH = "Failed to refresh logs"

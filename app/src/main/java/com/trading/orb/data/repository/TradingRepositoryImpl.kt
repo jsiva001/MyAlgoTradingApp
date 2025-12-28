@@ -2,6 +2,7 @@ package com.trading.orb.data.repository
 
 import com.trading.orb.data.model.*
 import com.trading.orb.ui.state.HistoryFilter
+import com.trading.orb.ui.utils.TimberLogs
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import timber.log.Timber
@@ -54,10 +55,10 @@ class TradingRepositoryImpl @Inject constructor() : TradingRepository {
                 connectionStatus = ConnectionStatus.CONNECTED,
                 strategyConfig = _strategyConfig.value
             )
-            Timber.d("Strategy started successfully")
+            Timber.d(TimberLogs.STRATEGY_STARTED_SUCCESSFULLY)
             Result.success(Unit)
         } catch (e: Exception) {
-            Timber.e(e, "Failed to start strategy")
+            Timber.e(e, TimberLogs.FAILED_START_STRATEGY)
             Result.failure(e)
         }
     }
@@ -69,10 +70,10 @@ class TradingRepositoryImpl @Inject constructor() : TradingRepository {
                 strategyConfig = null,
                 orbLevels = null
             )
-            Timber.d("Strategy stopped successfully")
+            Timber.d(TimberLogs.STRATEGY_STOPPED_SUCCESSFULLY)
             Result.success(Unit)
         } catch (e: Exception) {
-            Timber.e(e, "Failed to stop strategy")
+            Timber.e(e, TimberLogs.FAILED_STOP_STRATEGY)
             Result.failure(e)
         }
     }
@@ -85,10 +86,10 @@ class TradingRepositoryImpl @Inject constructor() : TradingRepository {
                 TradingMode.PAPER
             }
             _appState.value = _appState.value.copy(tradingMode = newMode)
-            Timber.d("Trading mode toggled to: $newMode")
+            Timber.d(TimberLogs.TRADING_MODE_TOGGLED, newMode.toString())
             Result.success(Unit)
         } catch (e: Exception) {
-            Timber.e(e, "Failed to toggle trading mode")
+            Timber.e(e, TimberLogs.FAILED_TOGGLE_TRADING_MODE)
             Result.failure(e)
         }
     }
@@ -98,10 +99,10 @@ class TradingRepositoryImpl @Inject constructor() : TradingRepository {
             _appState.value = _appState.value.copy(
                 strategyStatus = StrategyStatus.PAUSED
             )
-            Timber.d("Strategy paused")
+            Timber.d(TimberLogs.STRATEGY_PAUSED)
             Result.success(Unit)
         } catch (e: Exception) {
-            Timber.e(e, "Failed to pause strategy")
+            Timber.e(e, TimberLogs.FAILED_PAUSE_STRATEGY)
             Result.failure(e)
         }
     }
@@ -109,10 +110,10 @@ class TradingRepositoryImpl @Inject constructor() : TradingRepository {
     override suspend fun closeAllPositions(): Result<Unit> {
         return try {
             _positions.value = emptyList()
-            Timber.d("All positions closed")
+            Timber.d(TimberLogs.ALL_POSITIONS_CLOSED)
             Result.success(Unit)
         } catch (e: Exception) {
-            Timber.e(e, "Failed to close all positions")
+            Timber.e(e, TimberLogs.FAILED_CLOSE_ALL_POSITIONS)
             Result.failure(e)
         }
     }
@@ -120,10 +121,10 @@ class TradingRepositoryImpl @Inject constructor() : TradingRepository {
     override suspend fun updateStrategyConfig(config: StrategyConfig): Result<Unit> {
         return try {
             _strategyConfig.value = config
-            Timber.d("Strategy configuration updated")
+            Timber.d(TimberLogs.STRATEGY_CONFIG_UPDATED)
             Result.success(Unit)
         } catch (e: Exception) {
-            Timber.e(e, "Failed to update strategy configuration")
+            Timber.e(e, TimberLogs.FAILED_UPDATE_STRATEGY_CONFIG)
             Result.failure(e)
         }
     }
@@ -131,10 +132,10 @@ class TradingRepositoryImpl @Inject constructor() : TradingRepository {
     override suspend fun updateRiskSettings(settings: RiskSettings): Result<Unit> {
         return try {
             _riskSettings.value = settings
-            Timber.d("Risk settings updated")
+            Timber.d(TimberLogs.RISK_SETTINGS_UPDATED)
             Result.success(Unit)
         } catch (e: Exception) {
-            Timber.e(e, "Failed to update risk settings")
+            Timber.e(e, TimberLogs.FAILED_UPDATE_RISK_SETTINGS)
             Result.failure(e)
         }
     }
@@ -146,10 +147,10 @@ class TradingRepositoryImpl @Inject constructor() : TradingRepository {
             _positions.value = state.activePositions
             // Also update _trades with closed trades for history screen
             _trades.value = state.closedTrades
-            Timber.d("App state updated with ${state.activePositions.size} active positions and ${state.closedTrades.size} closed trades")
+            Timber.d(TimberLogs.APP_STATE_UPDATED, state.activePositions.size, state.closedTrades.size)
             Result.success(Unit)
         } catch (e: Exception) {
-            Timber.e(e, "Failed to update app state")
+            Timber.e(e, TimberLogs.FAILED_UPDATE_APP_STATE)
             Result.failure(e)
         }
     }
@@ -157,10 +158,10 @@ class TradingRepositoryImpl @Inject constructor() : TradingRepository {
     override suspend fun fetchTradesHistory(filter: HistoryFilter): Result<Unit> {
         return try {
             // Placeholder for actual API call
-            Timber.d("Trade history fetched with filter: $filter")
+            Timber.d(TimberLogs.TRADE_HISTORY_FETCHED, filter.toString())
             Result.success(Unit)
         } catch (e: Exception) {
-            Timber.e(e, "Failed to fetch trade history")
+            Timber.e(e, TimberLogs.FAILED_FETCH_TRADE_HISTORY)
             Result.failure(e)
         }
     }
