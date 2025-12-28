@@ -1,6 +1,7 @@
 package com.trading.orb.data.engine
 
 import com.trading.orb.data.model.*
+import com.trading.orb.ui.utils.TimberLogs
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import timber.log.Timber
@@ -39,7 +40,7 @@ class OrbStrategyEngine(
         strategyStartTime = LocalDateTime.now()
 
         _events.emit(StrategyEvent.Started(config))
-        Timber.i("ORB Strategy started for ${config.instrument.symbol}")
+        Timber.i(TimberLogs.ORB_STRATEGY_STARTED, config.instrument.symbol)
 
         scope.launch { runStrategy() }
     }
@@ -48,7 +49,7 @@ class OrbStrategyEngine(
         isRunning = false
         scope.coroutineContext.cancelChildren()
         _events.emit(StrategyEvent.Stopped)
-        Timber.i("ORB Strategy stopped")
+        Timber.i(TimberLogs.ORB_STRATEGY_STOPPED)
     }
 
     private suspend fun runStrategy() {
@@ -63,8 +64,8 @@ class OrbStrategyEngine(
                 managePosition()
             }
         } catch (e: Exception) {
-            Timber.e(e, "Strategy error")
-            _events.emit(StrategyEvent.Error(e.message ?: "Unknown error"))
+            Timber.e(e, TimberLogs.STRATEGY_ERROR.replace("%s", ""))
+            _events.emit(StrategyEvent.Error(e.message ?: TimberLogs.STRATEGY_UNKNOWN_ERROR))
         }
     }
 
@@ -78,22 +79,22 @@ class OrbStrategyEngine(
         
         if (com.trading.orb.BuildConfig.USE_MOCK_DATA) {
             // MOCK MODE: Use duration-based ORB window (15 minutes from start)
-            Timber.i("🚀 MOCK MODE: ORB Capture window opened - Will collect for ${orbDurationMinutes} minutes")
+            Timber.i(TimberLogs.ORB_MOCK_MODE_STARTED, orbDurationMinutes)
             orbStartTime = startTimestamp.toLocalTime()
             orbEndTime = orbStartTime.plusMinutes(orbDurationMinutes.toLong())
         } else {
             // REAL MODE: Use absolute time-based ORB window (9:15-9:30 AM)
-            Timber.i("🚀 REAL MODE: ORB Capture window - Waiting for ${config.orbStartTime}")
+            Timber.i(TimberLogs.ORB_REAL_MODE_WAITING, config.orbStartTime)
             orbStartTime = config.orbStartTime
             orbEndTime = config.orbEndTime
             waitUntilTime(orbStartTime)
-            Timber.i("🚀 ORB Capture window opened at ${orbStartTime}")
+            Timber.i(TimberLogs.ORB_CAPTURE_WINDOW_OPENED, orbStartTime)
         }
 
         marketDataSource.subscribeLTP(config.instrument.symbol)
             .takeWhile { isInOrbWindowCondition(orbStartTime, orbEndTime) && isRunning }
             .collect { ltp ->
-                Timber.d("📊 ORB Capture - LTP: ₹${String.format("%.2f", ltp)}")
+                Timber.d(TimberLogs.ORB_CAPTURE_LTP_UPDATE, ltp)
                 // EMIT PriceUpdate event so UI can show live LTP during capture
                 _events.emit(StrategyEvent.PriceUpdate(ltp))
                 val candle = buildCandle(ltp, startTimestamp)
@@ -112,7 +113,7 @@ class OrbStrategyEngine(
                 orbLevels = calculatedLevels.copy(isOrbCaptured = true)
 
                 orbCaptured = true
-                Timber.i("✅ ORB Captured - High: ₹${String.format("%.2f", orbLevels?.high ?: 0.0)}, Low: ₹${String.format("%.2f", orbLevels?.low ?: 0.0)}")
+                Timber.i(TimberLogs.ORB_CAPTURED_SUCCESS, orbLevels?.high ?: 0.0, orbLevels?.low ?: 0.0)
                 orbLevels?.let { _events.emit(StrategyEvent.OrbCaptured(it)) }
             }
         }
@@ -128,13 +129,13 @@ class OrbStrategyEngine(
             .collect { ltp ->
                 _events.emit(StrategyEvent.PriceUpdate(ltp))
                 
-                Timber.d("📊 LTP: ₹${String.format("%.2f", ltp)} | Buy Trigger: ₹${String.format("%.2f", buyTrigger)} | Sell Trigger: ₹${String.format("%.2f", sellTrigger)}")
+                Timber.d(TimberLogs.ORB_BREAKOUT_LTP_MONITORING, ltp, buyTrigger, sellTrigger)
 
                 if (ltp >= buyTrigger) {
-                    Timber.i("🟢 BUY SIGNAL! LTP ₹${String.format("%.2f", ltp)} >= Buy Trigger ₹${String.format("%.2f", buyTrigger)}")
+                    Timber.i(TimberLogs.ORB_BUY_SIGNAL, ltp, buyTrigger)
                     placeEntryOrder(OrderSide.BUY, ltp)
                 } else if (ltp <= sellTrigger) {
-                    Timber.i("🔴 SELL SIGNAL! LTP ₹${String.format("%.2f", ltp)} <= Sell Trigger ₹${String.format("%.2f", sellTrigger)}")
+                    Timber.i(TimberLogs.ORB_SELL_SIGNAL, ltp, sellTrigger)
                     placeEntryOrder(OrderSide.SELL, ltp)
                 }
             }
@@ -147,7 +148,7 @@ class OrbStrategyEngine(
             .takeWhile { isRunning && activePosition != null }
             .collect { ltp ->
                 activePosition = position.copy(currentPrice = ltp)
-                Timber.d("💹 Position Monitoring - LTP: ₹${String.format("%.2f", ltp)} | P&L: ₹${String.format("%.2f", ltp - position.entryPrice)}")
+                Timber.d(TimberLogs.ORB_POSITION_MONITORING, ltp, ltp - position.entryPrice)
                 _events.emit(StrategyEvent.PositionUpdate(activePosition!!))
 
                 when {

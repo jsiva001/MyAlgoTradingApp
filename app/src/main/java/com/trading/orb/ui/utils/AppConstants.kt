@@ -11,6 +11,7 @@ const val MARKET_CLOSE_HOUR = 15
 const val MARKET_CLOSE_MINUTE = 30
 const val MOCK_STRATEGY_EXECUTION_DELAY_MS = 500L
 const val MOCK_STRATEGY_FAILURE_RATE = 0
+const val DEFAULT_CANDLE_INTERVAL = "1m"
 
 // ============ UI CONSTANTS ============
 const val DEFAULT_MAX_POSITION = 1
@@ -174,6 +175,19 @@ fun buildValidationMessage(
 
 // ============ TIMBER LOG MESSAGES ============
 object TimberLogs {
+    // ORB Strategy Engine
+    const val ORB_STRATEGY_STARTED = "ORB Strategy started for %s"
+    const val ORB_STRATEGY_STOPPED = "ORB Strategy stopped"
+    const val ORB_MOCK_MODE_STARTED = "🚀 MOCK MODE: ORB Capture window opened - Will collect for %d minutes"
+    const val ORB_REAL_MODE_WAITING = "🚀 REAL MODE: ORB Capture window - Waiting for %s"
+    const val ORB_CAPTURE_WINDOW_OPENED = "🚀 ORB Capture window opened at %s"
+    const val ORB_CAPTURE_LTP_UPDATE = "📊 ORB Capture - LTP: ₹%.2f"
+    const val ORB_CAPTURED_SUCCESS = "✅ ORB Captured - High: ₹%.2f, Low: ₹%.2f"
+    const val ORB_BREAKOUT_LTP_MONITORING = "📊 LTP: ₹%.2f | Buy Trigger: ₹%.2f | Sell Trigger: ₹%.2f"
+    const val ORB_BUY_SIGNAL = "🟢 BUY SIGNAL! LTP ₹%.2f >= Buy Trigger ₹%.2f"
+    const val ORB_SELL_SIGNAL = "🔴 SELL SIGNAL! LTP ₹%.2f <= Sell Trigger ₹%.2f"
+    const val ORB_POSITION_MONITORING = "💹 Position Monitoring - LTP: ₹%.2f | P&L: ₹%.2f"
+    
     // Dashboard ViewModel
     const val DASHBOARD_LTP_UPDATE = "💹 LTP Update: ₹%.2f"
     const val DASHBOARD_FAILED_LOAD = "Failed to load dashboard"
@@ -196,6 +210,7 @@ object TimberLogs {
     const val STRATEGY_ERROR = "❌ Strategy Error: %s"
     const val ORDER_FAILED = "❌ Order Failed: %s"
     const val RISK_LIMIT_REACHED = "⚠️ Risk Limit Reached"
+    const val STRATEGY_UNKNOWN_ERROR = "Unknown error"
     
     // Trade History ViewModel
     const val HISTORY_FAILED_LOAD = "Failed to load trades"
